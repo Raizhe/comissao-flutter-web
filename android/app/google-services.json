@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "630900765193",
+    "project_id": "comissao-flutter-web",
+    "storage_bucket": "comissao-flutter-web.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:630900765193:android:86fc8c1cf06cc2b124fed8",
+        "android_client_info": {
+          "package_name": "com.comissao.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCmRZZKxZGLWtdAqLJI-d2s2RvXwTPDEXA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
