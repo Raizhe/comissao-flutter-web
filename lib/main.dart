@@ -1,3 +1,6 @@
+import 'package:comissao_flutter_web/presentation/screens/clients/client_form_page.dart';
+import 'package:comissao_flutter_web/presentation/screens/clients/pre_seller_form_page.dart';
+import 'package:comissao_flutter_web/presentation/screens/clients/seller_form_page.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -30,6 +33,9 @@ class MyApp extends StatelessWidget {
         '/login': (context) => const LoginPage(),
         //'/register': (context) => const RegisterPage(),
         '/home': (context) => const HomePage(),
+        '/client_form': (context) => const ClientFormPage(),
+        '/pre_seller_form': (context) => const PreSellerFormPage(),
+        '/seller_form': (context) => const SellerFormPage(),
       },
     );
   }
@@ -44,7 +50,7 @@ class AuthenticationWrapper extends StatelessWidget {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-        // Se o usuário está autenticado, ir para a HomePage
+        // Se o usuário está autenticado , ir para a HomePage
         if (snapshot.connectionState == ConnectionState.active) {
           User? user = snapshot.data;
           if (user == null) {
