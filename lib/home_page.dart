@@ -26,8 +26,34 @@ class HomePage extends StatelessWidget {
           ),
         ],
       ),
-      body: const Center(
-        child: Text('Esta é a página inicial.'),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ElevatedButton(
+              onPressed: () {
+                // Navegar para a página de cadastro de clientes
+                Navigator.pushNamed(context, '/client_form');
+              },
+              child: const Text('Cadastrar Cliente'),
+            ),
+            const SizedBox(height: 45,),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pushNamed(context, '/pre_seller_form');
+              },
+              child: const Text('Cadastrar Pré-vendedor'),
+            ),
+            const SizedBox(height: 45,),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pushNamed(context, '/seller_form');
+              },
+              child: const Text('Cadastrar Vendedor'),
+            ),
+
+          ],
+        ),
       ),
     );
   }
