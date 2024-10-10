@@ -54,12 +54,12 @@ class _LoginPageState extends State<LoginPage> {
             const SizedBox(
               height: 10,
             ),
-            TextButton(
-              onPressed: () {
-                Navigator.pushNamed(context, '/register');
-              },
-              child: const Text('Não tem uma conta? Registre-se'),
-            ),
+            // TextButton(
+            //   onPressed: () {
+            //     Navigator.pushNamed(context, '/register');
+            //   },
+            //  // child: const Text('Não tem uma conta? Registre-se'),
+            // ),
           ],
         ),
       ),
