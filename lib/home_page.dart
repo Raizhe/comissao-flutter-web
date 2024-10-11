@@ -51,6 +51,13 @@ class HomePage extends StatelessWidget {
               },
               child: const Text('Cadastrar Vendedor'),
             ),
+            const SizedBox(height: 45,),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pushNamed(context, '/user_form');
+              },
+              child: const Text('Cadastrar Usuário'),
+            ),
 
           ],
         ),

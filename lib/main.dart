@@ -1,6 +1,7 @@
 import 'package:comissao_flutter_web/presentation/screens/clients/client_form_page.dart';
 import 'package:comissao_flutter_web/presentation/screens/clients/pre_seller_form_page.dart';
 import 'package:comissao_flutter_web/presentation/screens/clients/seller_form_page.dart';
+import 'package:comissao_flutter_web/presentation/screens/clients/user_form_page.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
@@ -36,6 +37,7 @@ class MyApp extends StatelessWidget {
         '/client_form': (context) => const ClientFormPage(),
         '/pre_seller_form': (context) => const PreSellerFormPage(),
         '/seller_form': (context) => const SellerFormPage(),
+        '/user_form': (context) => const UserFormPage(),
       },
     );
   }
