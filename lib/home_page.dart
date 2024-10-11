@@ -58,6 +58,14 @@ class HomePage extends StatelessWidget {
               },
               child: const Text('Cadastrar Usuário'),
             ),
+            const SizedBox(height: 45,),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pushNamed(context, '/contract_form');
+              },
+              child: const Text('Cadastrar Contrato'),
+            ),
+
 
           ],
         ),

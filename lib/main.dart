@@ -1,4 +1,5 @@
 import 'package:comissao_flutter_web/presentation/screens/clients/client_form_page.dart';
+import 'package:comissao_flutter_web/presentation/screens/clients/contract_form_page.dart';
 import 'package:comissao_flutter_web/presentation/screens/clients/pre_seller_form_page.dart';
 import 'package:comissao_flutter_web/presentation/screens/clients/seller_form_page.dart';
 import 'package:comissao_flutter_web/presentation/screens/clients/user_form_page.dart';
@@ -19,7 +20,7 @@ void main() async {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -38,13 +39,14 @@ class MyApp extends StatelessWidget {
         '/pre_seller_form': (context) => const PreSellerFormPage(),
         '/seller_form': (context) => const SellerFormPage(),
         '/user_form': (context) => const UserFormPage(),
+        '/contract_form': (context) => const ContractFormPage(),
       },
     );
   }
 }
 
 class AuthenticationWrapper extends StatelessWidget {
-  const AuthenticationWrapper({Key? key}) : super(key: key);
+  const AuthenticationWrapper({super.key});
 
   @override
   Widget build(BuildContext context) {
