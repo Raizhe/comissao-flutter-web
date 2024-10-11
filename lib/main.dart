@@ -1,15 +1,15 @@
 import 'package:comissao_flutter_web/presentation/screens/clients/client_form_page.dart';
-import 'package:comissao_flutter_web/presentation/screens/clients/contract_form_page.dart';
-import 'package:comissao_flutter_web/presentation/screens/clients/pre_seller_form_page.dart';
-import 'package:comissao_flutter_web/presentation/screens/clients/seller_form_page.dart';
-import 'package:comissao_flutter_web/presentation/screens/clients/user_form_page.dart';
+import 'package:comissao_flutter_web/presentation/screens/contract/contract_form_page.dart';
+import 'package:comissao_flutter_web/presentation/screens/pre_seller/pre_seller_form_page.dart';
+import 'package:comissao_flutter_web/presentation/screens/seller/seller_form_page.dart';
+import 'package:comissao_flutter_web/presentation/screens/user/user_form_page.dart';
+import 'package:comissao_flutter_web/presentation/screens/comission/commission_form_page.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'login_page.dart';
-import 'register_page.dart';
-import 'home_page.dart';
+import 'presentation/screens/login/login_page.dart';
+import 'presentation/screens/home/home_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -40,6 +40,8 @@ class MyApp extends StatelessWidget {
         '/seller_form': (context) => const SellerFormPage(),
         '/user_form': (context) => const UserFormPage(),
         '/contract_form': (context) => const ContractFormPage(),
+        '/commission_form': (context) => const CommissionFormPage(),
+
       },
     );
   }
