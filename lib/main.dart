@@ -1,13 +1,15 @@
 import 'package:comissao_flutter_web/presentation/screens/clients/client_form_page.dart';
-import 'package:comissao_flutter_web/presentation/screens/clients/pre_seller_form_page.dart';
-import 'package:comissao_flutter_web/presentation/screens/clients/seller_form_page.dart';
+import 'package:comissao_flutter_web/presentation/screens/contract/contract_form_page.dart';
+import 'package:comissao_flutter_web/presentation/screens/pre_seller/pre_seller_form_page.dart';
+import 'package:comissao_flutter_web/presentation/screens/seller/seller_form_page.dart';
+import 'package:comissao_flutter_web/presentation/screens/user/user_form_page.dart';
+import 'package:comissao_flutter_web/presentation/screens/comission/commission_form_page.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'login_page.dart';
-import 'register_page.dart';
-import 'home_page.dart';
+import 'presentation/screens/login/login_page.dart';
+import 'presentation/screens/home/home_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,7 +20,7 @@ void main() async {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -36,13 +38,17 @@ class MyApp extends StatelessWidget {
         '/client_form': (context) => const ClientFormPage(),
         '/pre_seller_form': (context) => const PreSellerFormPage(),
         '/seller_form': (context) => const SellerFormPage(),
+        '/user_form': (context) => const UserFormPage(),
+        '/contract_form': (context) => const ContractFormPage(),
+        '/commission_form': (context) => const CommissionFormPage(),
+
       },
     );
   }
 }
 
 class AuthenticationWrapper extends StatelessWidget {
-  const AuthenticationWrapper({Key? key}) : super(key: key);
+  const AuthenticationWrapper({super.key});
 
   @override
   Widget build(BuildContext context) {
