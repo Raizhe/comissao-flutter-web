@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:get/get.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({Key? key}) : super(key: key);
+
   @override
   _LoginPageState createState() => _LoginPageState();
 }
@@ -17,12 +19,14 @@ class _LoginPageState extends State<LoginPage> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
-      // Navegar para a tela principal após o login bem-sucedido
-      Navigator.pushReplacementNamed(context, '/home');
+      // Navegar para a tela principal após o login bem-sucedido usando GetX
+      Get.offNamed('/home');
     } catch (e) {
       // Exibir mensagem de erro
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao fazer login: $e')),
+      Get.snackbar(
+        'Erro',
+        'Erro ao fazer login: $e',
+        snackPosition: SnackPosition.BOTTOM,
       );
     }
   }
@@ -56,9 +60,9 @@ class _LoginPageState extends State<LoginPage> {
             ),
             // TextButton(
             //   onPressed: () {
-            //     Navigator.pushNamed(context, '/register');
+            //     Get.toNamed('/register'); // Usando GetX para navegação
             //   },
-            //  // child: const Text('Não tem uma conta? Registre-se'),
+            //   child: const Text('Não tem uma conta? Registre-se'),
             // ),
           ],
         ),

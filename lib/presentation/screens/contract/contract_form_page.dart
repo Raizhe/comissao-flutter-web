@@ -1,70 +1,50 @@
-// lib/presentation/screens/contracts/contract_form_page.dart
+import 'package:comissao_flutter_web/presentation/screens/contract/controllers/contracts_controller.dart';
 import 'package:flutter/material.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:get/get.dart';
+import 'package:uuid/uuid.dart';
 import '../../../data/models/contract_model.dart';
-import '../../../data/repositories/contract_repository.dart';
 
-class ContractFormPage extends StatefulWidget {
-  const ContractFormPage({Key? key}) : super(key: key);
 
-  @override
-  _ContractFormPageState createState() => _ContractFormPageState();
-}
+class ContractFormPage extends StatelessWidget {
+  final ContractController _contractController = Get.put(ContractController());
 
-class _ContractFormPageState extends State<ContractFormPage> {
   final _clientIdController = TextEditingController();
   final _clientNameController = TextEditingController();
   final _sellerIdController = TextEditingController();
   final _preSellerIdController = TextEditingController();
   final _typeController = TextEditingController();
   final _amountController = TextEditingController();
-  final _startDateController = TextEditingController();
-  final _endDateController = TextEditingController();
   final _paymentMethodController = TextEditingController();
   final _installmentsController = TextEditingController();
   final _renewalTypeController = TextEditingController();
-  // final _contractCSController = TextEditingController();
-  // final _projectManagerController = TextEditingController();
+  final _salesOriginController = TextEditingController();
+  final _preSalesOriginController = TextEditingController();
 
-  final ContractRepository _contractRepository = ContractRepository();
+  ContractFormPage({super.key});
 
   Future<void> _addContract() async {
-    try {
-      String contractId = FirebaseFirestore.instance.collection('contracts').doc().id; // Gerar ID automaticamente
-      ContractModel newContract = ContractModel(
-        contractId: contractId,
-        clientId: _clientIdController.text.trim(),
-        clientName: _clientNameController.text.trim(),
-        sellerId: _sellerIdController.text.trim(),
-        preSellerId: _preSellerIdController.text.trim(),
-        type: _typeController.text.trim(),
-        amount: double.parse(_amountController.text.trim()),
-        startDate: DateTime.now(),
-        endDate: _endDateController.text.isNotEmpty ? DateTime.parse(_endDateController.text) : null,
-        status: 'active',
-        createdAt: DateTime.now(),
-        paymentMethod: _paymentMethodController.text.trim(),
-        installments: int.parse(_installmentsController.text.trim()),
-        renewalType: _renewalTypeController.text.trim(),
-        salesOrigin: _sellerIdController.text.trim(),
-        preSalesOrigin: _preSellerIdController.text.trim(),
-        // contractCS: _contractCSController.text.trim(),
-        // projectManager: _projectManagerController.text.trim(),
-      );
+    String contractId = const Uuid().v4();
 
-      await _contractRepository.addContract(newContract);
+    ContractModel newContract = ContractModel(
+      contractId: contractId,
+      clientId: _clientIdController.text.trim(),
+      clientName: _clientNameController.text.trim(),
+      sellerId: _sellerIdController.text.trim(),
+      preSellerId: _preSellerIdController.text.trim(),
+      type: _typeController.text.trim(),
+      amount: double.parse(_amountController.text.trim()),
+      startDate: DateTime.now(),
+      endDate: null, // Adicione a lógica para escolher uma data final se necessário
+      status: 'ativo', // Definir status inicial
+      createdAt: DateTime.now(),
+      paymentMethod: _paymentMethodController.text.trim(),
+      installments: int.parse(_installmentsController.text.trim()),
+      renewalType: _renewalTypeController.text.trim(),
+      salesOrigin: _salesOriginController.text.trim(),
+      preSalesOrigin: _preSalesOriginController.text.trim(),
+    );
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Contrato cadastrado com sucesso!')),
-      );
-
-      // Voltar para a página inicial após o cadastro
-      Navigator.pop(context);
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao cadastrar contrato: $e')),
-      );
-    }
+    await _contractController.addContract(newContract);
   }
 
   @override
@@ -91,11 +71,11 @@ class _ContractFormPageState extends State<ContractFormPage> {
             ),
             TextField(
               controller: _preSellerIdController,
-              decoration: const InputDecoration(labelText: 'ID do Pré-Vendedor'),
+              decoration: const InputDecoration(labelText: 'ID do Pré-vendedor'),
             ),
             TextField(
               controller: _typeController,
-              decoration: const InputDecoration(labelText: 'Tipo (monthly_fee ou one_time_job)'),
+              decoration: const InputDecoration(labelText: 'Tipo de Contrato'),
             ),
             TextField(
               controller: _amountController,
@@ -103,30 +83,30 @@ class _ContractFormPageState extends State<ContractFormPage> {
               keyboardType: TextInputType.number,
             ),
             TextField(
-              controller: _installmentsController,
-              decoration: const InputDecoration(labelText: 'Número de Parcelas'),
-              keyboardType: TextInputType.number,
-            ),
-            TextField(
               controller: _paymentMethodController,
               decoration: const InputDecoration(labelText: 'Forma de Pagamento'),
             ),
             TextField(
-              controller: _renewalTypeController,
-              decoration: const InputDecoration(labelText: 'Tipo de Renovação (automático/manual)'),
+              controller: _installmentsController,
+              decoration: const InputDecoration(labelText: 'Parcelas'),
+              keyboardType: TextInputType.number,
             ),
-            // TextField(
-            //   controller: _contractCSController,
-            //   decoration: const InputDecoration(labelText: 'ID do CS'),
-            // ),
-            // TextField(
-            //   controller: _projectManagerController,
-            //   decoration: const InputDecoration(labelText: 'ID do Gerente de Projeto'),
-            // ),
+            TextField(
+              controller: _renewalTypeController,
+              decoration: const InputDecoration(labelText: 'Tipo de Renovação'),
+            ),
+            TextField(
+              controller: _salesOriginController,
+              decoration: const InputDecoration(labelText: 'Origem da Venda'),
+            ),
+            TextField(
+              controller: _preSalesOriginController,
+              decoration: const InputDecoration(labelText: 'Origem da Pré-venda'),
+            ),
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: _addContract,
-              child: const Text('Cadastrar'),
+              child: const Text('Cadastrar Contrato'),
             ),
           ],
         ),

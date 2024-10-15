@@ -35,9 +35,9 @@ class MyApp extends StatelessWidget {
         GetPage(name: '/home', page: () => HomePage()),
         GetPage(name: '/client_form', page: () =>  ClientFormPage()),
         GetPage(name: '/pre_seller_form', page: () => const PreSellerFormPage()),
-        GetPage(name: '/seller_form', page: () => const SellerFormPage()),
-        GetPage(name: '/user_form', page: () => const UserFormPage()),
-        GetPage(name: '/contract_form', page: () => const ContractFormPage()),
+        GetPage(name: '/seller_form', page: () => SellerFormPage()),
+        GetPage(name: '/user_form', page: () => UserFormPage()),
+        GetPage(name: '/contract_form', page: () => ContractFormPage()),
       ],
     );
   }

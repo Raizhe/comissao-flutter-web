@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
-import '../../../data/repositories/user_repository.dart'; // Importe o repositório para buscar o papel
+import '../../../data/repositories/user_repository.dart';
+import '../contract/contract_form_page.dart'; // Importe o repositório para buscar o papel
 
 class HomePage extends StatelessWidget {
   final UserRepository userRepository = UserRepository();
@@ -60,9 +61,10 @@ class HomePage extends StatelessWidget {
                     // Mais permissões de admin aqui...
                   ],
                   if (role == 'seller' || role == 'pre_seller') ...[
+
                     ElevatedButton(
                       onPressed: () {
-                        Get.toNamed('/contract_form');
+                        Get.to(() => ContractFormPage()); // Navegar para a página de formulário de contrato
                       },
                       child: const Text('Cadastrar Contrato'),
                     ),
