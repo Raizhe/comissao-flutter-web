@@ -1,5 +1,3 @@
-//lembrar de fazer stash e criar branch nova para cadastro de usuario
-
 // lib/data/models/user_model.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -20,7 +18,7 @@ class UserModel {
     this.commissionRate,
   });
 
-  // Método para converter de Firestore para UserModel
+  // Método para converter Firestore para UserModel
   factory UserModel.fromFirestore(Map<String, dynamic> data) {
     return UserModel(
       uid: data['uid'],
@@ -28,7 +26,7 @@ class UserModel {
       email: data['email'],
       role: data['role'],
       createdAt: (data['createdAt'] as Timestamp).toDate(),
-      commissionRate: data['commissionRate'] != null ? data['commissionRate'].toDouble() : null,
+      commissionRate: data['commissionRate']?.toDouble(),
     );
   }
 

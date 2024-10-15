@@ -31,7 +31,7 @@ class _UserFormPageState extends State<UserFormPage> {
         commissionRate: double.tryParse(_commissionRateController.text.trim()) ?? 0.0,
       );
 
-      await _userRepository.addUser(newUser);
+     // await _userRepository.addUser(newUser);
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Usuário cadastrado com sucesso!')),
