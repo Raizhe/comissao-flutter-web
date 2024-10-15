@@ -58,6 +58,12 @@ class HomePage extends StatelessWidget {
                       },
                       child: const Text('Cadastrar Cliente'),
                     ),
+                    ElevatedButton(
+                      onPressed: () {
+                        Get.to(() => ContractFormPage()); // Navegar para a página de formulário de contrato
+                      },
+                      child: const Text('Cadastrar Contrato'),
+                    ),
                     // Mais permissões de admin aqui...
                   ],
                   if (role == 'seller' || role == 'pre_seller') ...[
