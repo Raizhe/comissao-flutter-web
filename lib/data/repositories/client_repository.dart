@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/client_model.dart';
 
-
 class ClientRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
