@@ -31,7 +31,6 @@ class _LeadFormPageState extends State<LeadFormPage> {
       LeadModel lead = LeadModel(
         leadId: leadId,
         name: _nomeOportunidadeController.text.trim(),
-        sdr: _sdrController.text.trim(),
         vendedor: _vendedorController.text.trim(),
         link: _linkController.text.trim(),
         origem: _origemController.text.trim(),
@@ -81,12 +80,6 @@ class _LeadFormPageState extends State<LeadFormPage> {
                       controller: _nomeOportunidadeController,
                       decoration: const InputDecoration(
                         labelText: 'Nome da Oportunidade',
-                      ),
-                    ),
-                    TextField(
-                      controller: _sdrController,
-                      decoration: const InputDecoration(
-                        labelText: 'SDR',
                       ),
                     ),
                     TextField(

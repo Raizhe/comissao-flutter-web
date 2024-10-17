@@ -58,12 +58,6 @@ class _LoginPageState extends State<LoginPage> {
             const SizedBox(
               height: 10,
             ),
-            // TextButton(
-            //   onPressed: () {
-            //     Get.toNamed('/register'); // Usando GetX para navegação
-            //   },
-            //   child: const Text('Não tem uma conta? Registre-se'),
-            // ),
           ],
         ),
       ),
