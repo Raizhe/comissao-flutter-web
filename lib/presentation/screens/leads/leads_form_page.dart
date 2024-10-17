@@ -84,12 +84,6 @@ class _LeadFormPageState extends State<LeadFormPage> {
                       ),
                     ),
                     TextField(
-                      controller: _sdrController,
-                      decoration: const InputDecoration(
-                        labelText: 'SDR',
-                      ),
-                    ),
-                    TextField(
                       controller: _vendedorController,
                       decoration: const InputDecoration(
                         labelText: 'Vendedor',
