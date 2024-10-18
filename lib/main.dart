@@ -1,7 +1,11 @@
-import 'package:comissao_flutter_web/presentation/screens/clients/client_form_page.dart';
+import 'package:comissao_flutter_web/presentation/screens/clients/clients_form_page.dart';
+import 'package:comissao_flutter_web/presentation/screens/clients/clients_page.dart';
 import 'package:comissao_flutter_web/presentation/screens/contract/contract_form_page.dart';
+import 'package:comissao_flutter_web/presentation/screens/contract/contracts_page.dart';
 import 'package:comissao_flutter_web/presentation/screens/leads/leads_form_page.dart';
+import 'package:comissao_flutter_web/presentation/screens/leads/leads_page.dart';
 import 'package:comissao_flutter_web/presentation/screens/meet/meet_form-page.dart';
+import 'package:comissao_flutter_web/presentation/screens/meet/meet_page.dart';
 import 'package:comissao_flutter_web/presentation/screens/pre_seller/pre_seller_form_page.dart';
 import 'package:comissao_flutter_web/presentation/screens/seller/seller_form_page.dart';
 import 'package:comissao_flutter_web/presentation/screens/user/user_form_page.dart';
@@ -33,7 +37,7 @@ class MyApp extends StatelessWidget {
       initialRoute: '/', // Define a rota inicial como '/'
       getPages: [
         GetPage(name: '/', page: () => const AuthenticationWrapper()),
-        GetPage(name: '/login', page: () => const LoginPage()),
+        GetPage(name: '/login', page: () => LoginPage()),
         GetPage(name: '/home', page: () => HomePage()),
         GetPage(name: '/client_form', page: () =>  ClientFormPage()),
         GetPage(name: '/pre_seller_form', page: () => const PreSellerFormPage()),
@@ -42,6 +46,12 @@ class MyApp extends StatelessWidget {
         GetPage(name: '/contract_form', page: () => ContractFormPage()),
         GetPage(name: '/meet_form', page: () => MeetFormPage()),
         GetPage(name: '/lead_form', page: () => LeadFormPage()),
+        GetPage(name: '/leads_page', page: () => LeadPage()),
+        GetPage(name: '/contracts_page', page: () => ContractsPage()),
+        GetPage(name: '/clients_page', page: () => ClientsPage()),
+        GetPage(name: '/meet_page', page: () => MeetPage()),
+
+
       ],
     );
   }
@@ -59,7 +69,7 @@ class AuthenticationWrapper extends StatelessWidget {
           User? user = snapshot.data;
           // Verifica se o usuário está autenticado
           if (user == null) {
-            return const LoginPage();
+            return LoginPage();
           } else {
             return HomePage();
           }

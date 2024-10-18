@@ -18,8 +18,6 @@ class ContractModel {
   final String renewalType;
   final String salesOrigin;
   final String preSalesOrigin;
-  // final String contractCS;
-  // final String projectManager;
 
   ContractModel({
     required this.contractId,
@@ -38,31 +36,27 @@ class ContractModel {
     required this.renewalType,
     required this.salesOrigin,
     required this.preSalesOrigin,
-    // required this.contractCS,
-    // required this.projectManager,
   });
 
   // Método para converter de Firestore para ContractModel
   factory ContractModel.fromFirestore(Map<String, dynamic> data) {
     return ContractModel(
-      contractId: data['contractId'],
-      clientId: data['clientId'],
-      clientName: data['clientName'],
-      sellerId: data['sellerId'],
-      preSellerId: data['preSellerId'],
-      type: data['type'],
-      amount: data['amount'].toDouble(),
+      contractId: data['contractId'] ?? '',
+      clientId: data['clientId'] ?? '',
+      clientName: data['clientName'] ?? '',
+      sellerId: data['sellerId'] ?? '',
+      preSellerId: data['preSellerId'] ?? '',
+      type: data['type'] ?? '',
+      amount: (data['amount'] as num).toDouble(), // Conversão garantida para double
       startDate: (data['startDate'] as Timestamp).toDate(),
       endDate: data['endDate'] != null ? (data['endDate'] as Timestamp).toDate() : null,
-      status: data['status'],
+      status: data['status'] ?? '',
       createdAt: (data['createdAt'] as Timestamp).toDate(),
-      paymentMethod: data['paymentMethod'],
-      installments: data['installments'],
-      renewalType: data['renewalType'],
-      salesOrigin: data['salesOrigin'],
-      preSalesOrigin: data['preSalesOrigin'],
-      // contractCS: data['contractCS'],
-      // projectManager: data['projectManager'],
+      paymentMethod: data['paymentMethod'] ?? '',
+      installments: (data['installments'] as num).toInt(), // Conversão garantida para int
+      renewalType: data['renewalType'] ?? '',
+      salesOrigin: data['salesOrigin'] ?? '',
+      preSalesOrigin: data['preSalesOrigin'] ?? '',
     );
   }
 
@@ -85,8 +79,6 @@ class ContractModel {
       'renewalType': renewalType,
       'salesOrigin': salesOrigin,
       'preSalesOrigin': preSalesOrigin,
-      // 'contractCS': contractCS,
-      // 'projectManager': projectManager,
     };
   }
 }

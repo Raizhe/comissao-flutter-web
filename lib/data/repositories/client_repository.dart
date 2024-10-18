@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/client_model.dart';
+import '../models/clients_model.dart';
 
 class ClientRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -38,6 +38,18 @@ class ClientRepository {
       await _firestore.collection('clients').doc(clientId).delete();
     } catch (e) {
       throw Exception('Erro ao deletar cliente: $e');
+    }
+  }
+
+  // Buscar todos os clientes do Firestore
+  Future<List<ClientModel>> getAllClients() async {
+    try {
+      QuerySnapshot snapshot = await _firestore.collection('clients').get();
+      return snapshot.docs
+          .map((doc) => ClientModel.fromJson(doc.data() as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      throw Exception('Erro ao buscar clientes: $e');
     }
   }
 }

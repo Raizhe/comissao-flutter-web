@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:uuid/uuid.dart';
 import 'package:flutter_masked_text2/flutter_masked_text2.dart';
-import '../../../data/models/client_model.dart';
+import '../../../data/models/clients_model.dart';
 import '../../../widgets/success_dialog.dart';
 import 'controllers/clients_controller.dart';
 
@@ -27,7 +27,7 @@ class ClientFormPage extends StatelessWidget {
   final _situationController = TextEditingController();
   final _groupController = TextEditingController();
 
-  final ClientController _clientController = Get.put(ClientController());
+  final ClientsController _clientController = Get.put(ClientsController());
 
   ClientFormPage({Key? key}) : super(key: key);
 
@@ -60,7 +60,7 @@ class ClientFormPage extends StatelessWidget {
       );
 
       // Adicionar o cliente via ClientController
-      await _clientController.addClient(client);
+      //await _clientController.addClient(client);
 
       // Mostrar mensagem de sucesso
       SuccessDialog.showSuccess('Cliente cadastrado com sucesso!');
