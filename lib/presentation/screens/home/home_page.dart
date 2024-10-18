@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../data/repositories/user_repository.dart';
+import '../../../widgets/side_bar_widget.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 class HomePage extends StatelessWidget {
   final UserRepository userRepository = UserRepository();
@@ -10,7 +13,18 @@ class HomePage extends StatelessWidget {
 
   Future<void> _signOut() async {
     await FirebaseAuth.instance.signOut();
-    Get.offNamed('/login'); // Navegar para a tela de login usando GetX
+    Get.offNamed('/login');
+  }
+
+  Future<int> _getCount(String collection) async {
+    try {
+      QuerySnapshot snapshot =
+      await FirebaseFirestore.instance.collection(collection).get();
+      return snapshot.size;
+    } catch (e) {
+      print('Erro ao buscar contagem: $e');
+      return 0;
+    }
   }
 
   @override
@@ -29,198 +43,168 @@ class HomePage extends StatelessWidget {
         ],
       ),
       drawer: FutureBuilder<String?>(
-        future: userRepository.getUserRole(user!.uid), // Obtém o papel do usuário
+        future: userRepository.getUserRole(user!.uid),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasData) {
             String? role = snapshot.data;
-            return Drawer(
-              child: ListView(
-                padding: EdgeInsets.zero,
-                children: <Widget>[
-                  const DrawerHeader(
-                    decoration: BoxDecoration(
-                      color: Colors.blue,
-                    ),
-                    child: Text(
-                      'Menu de Navegação',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                      ),
-                    ),
-                  ),
-
-                  // Itens comuns a todos os papéis
-                  _buildDrawerItem(
-                    icon: Icons.person_add,
-                    text: 'Cadastrar Lead',
-                    route: '/lead_form',
-                  ),
-                  _buildDrawerItem(
-                    icon: Icons.meeting_room,
-                    text: 'Cadastrar Meet',
-                    route: '/meet_form',
-                  ),
-
-                  // Itens exclusivos para admin e manager
-                  if (role == 'admin' || role == 'manager') ...[
-                    _buildDrawerItem(
-                      icon: Icons.person,
-                      text: 'Cadastrar Usuário',
-                      route: '/user_form',
-                    ),
-                    _buildDrawerItem(
-                      icon: Icons.assignment,
-                      text: 'Cadastrar Contrato',
-                      route: '/contract_form',
-                    ),
-                    _buildDrawerItem(
-                      icon: Icons.monetization_on,
-                      text: 'Gerenciar Comissões',
-                      route: '/commission_form',
-                    ),
+            return SidebarWidget(role: role!);
+          } else {
+            return const Center(child: Text('Erro ao carregar o papel do usuário.'));
+          }
+        },
+      ),
+      body: FutureBuilder<Map<String, int>>(
+        future: _fetchData(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return const Center(child: Text('Erro ao carregar dados.'));
+          } else {
+            final data = snapshot.data!;
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Wrap(
+                  spacing: 20,
+                  runSpacing: 20,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    _buildChart('Leads', data['leads']!, Colors.blue, 'linha'),
+                    _buildChart('Contratos', data['contracts']!, Colors.green, 'coluna'),
+                    _buildChart('Clientes', data['clients']!, Colors.deepPurple , 'pizza'),
                   ],
-
-                  // Itens exclusivos para seller e pre-seller
-                  if (role == 'seller' || role == 'pre_seller') ...[
-                    _buildDrawerItem(
-                      icon: Icons.business,
-                      text: 'Cadastrar Cliente',
-                      route: '/client_form',
-                    ),
-                    _buildDrawerItem(
-                      icon: Icons.bar_chart,
-                      text: 'Ver Rate de Vendas',
-                      route: '/rate_sales',
-                    ),
-                  ],
-
-                  // Item visível para todos os papéis
-                  _buildDrawerItem(
-                    icon: Icons.list,
-                    text: 'Visualizar Clientes',
-                    route: '/client_list',
-                  ),
-                ],
+                ),
               ),
             );
-          } else {
-            return const Center(child: Text('Erro ao carregar o papel do usuário.'));
-          }
-        },
-      ),
-      body: FutureBuilder<String?>(
-        future: userRepository.getUserRole(user!.uid), // Obtém o papel do usuário
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasData) {
-            String? role = snapshot.data;
-            return _buildDashboard(role!); // Renderiza a dashboard com base no papel
-          } else {
-            return const Center(child: Text('Erro ao carregar o papel do usuário.'));
           }
         },
       ),
     );
   }
 
-  // Método para criar itens no drawer
-  Widget _buildDrawerItem({
-    required IconData icon,
-    required String text,
-    required String route,
-  }) {
-    return ListTile(
-      leading: Icon(icon),
-      title: Text(text),
-      onTap: () {
-        Get.toNamed(route);
-      },
-    );
+  Future<Map<String, int>> _fetchData() async {
+    int leadsCount = await _getCount('leads');
+    int contractsCount = await _getCount('contracts');
+    int clientsCount = await _getCount('clients');
+
+    return {
+      'leads': leadsCount,
+      'contracts': contractsCount,
+      'clients': clientsCount,
+    };
   }
 
-  // Método para renderizar a dashboard personalizada
-  Widget _buildDashboard(String role) {
-    switch (role) {
-      case 'admin':
-        return _adminDashboard();
-      case 'manager':
-        return _managerDashboard();
-      case 'seller':
-        return _sellerDashboard();
-      case 'pre_seller':
-        return _preSellerDashboard();
+  Widget _buildChart(String title, int value, Color color, String type) {
+    switch (type) {
+      case 'linha':
+        return _buildLineChart(title, value, color);
+      case 'coluna':
+        return _buildBarChart(title, value, color);
+      case 'pizza':
+        return _buildPieChart(title, value, color);
       default:
-        return const Center(child: Text('Bem-vindo!'));
+        return const Text('Tipo de gráfico não encontrado.');
     }
   }
 
-  // Dashboard para admin
-  Widget _adminDashboard() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Text('Dashboard - Admin', style: TextStyle(fontSize: 24)),
-          const SizedBox(height: 20),
-          _buildNavigationButton('/user_list', 'Visualizar Usuários'),
-        ],
+  Widget _buildLineChart(String title, int value, Color color) {
+    return _buildCard(
+      title,
+      LineChart(
+        LineChartData(
+          minY: 0,
+          maxY: (value + 10).toDouble(),
+          gridData: FlGridData(show: true),
+          borderData: FlBorderData(
+            show: true,
+            border: const Border(
+              bottom: BorderSide(color: Colors.black, width: 2),
+              left: BorderSide(color: Colors.black, width: 2),
+            ),
+          ),
+          titlesData: FlTitlesData(show: true),
+          lineBarsData: [
+            LineChartBarData(
+              spots: [FlSpot(0, 0), FlSpot(1, value.toDouble())],
+              isCurved: true,
+              barWidth: 3,
+              color: color,
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  // Dashboard para manager
-  Widget _managerDashboard() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Text('Dashboard - Manager', style: TextStyle(fontSize: 24)),
-          const SizedBox(height: 20),
-          _buildNavigationButton('/contract_list', 'Visualizar Contratos'),
-        ],
+  Widget _buildBarChart(String title, int value, Color color) {
+    return _buildCard(
+      title,
+      BarChart(
+        BarChartData(
+          alignment: BarChartAlignment.center,
+          maxY: value.toDouble() + 10,
+          barGroups: [
+            BarChartGroupData(
+              x: 0,
+              barRods: [
+                BarChartRodData(
+                  toY: value.toDouble(),
+                  color: color,
+                  width: 20,
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  // Dashboard para seller
-  Widget _sellerDashboard() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Text('Dashboard - Seller', style: TextStyle(fontSize: 24)),
-          const SizedBox(height: 20),
-          _buildNavigationButton('/lead_list', 'Visualizar Leads'),
-        ],
+  Widget _buildPieChart(String title, int value, Color color) {
+    return _buildCard(
+      title,
+      PieChart(
+        PieChartData(
+          sections: [
+            PieChartSectionData(
+              value: value.toDouble(),
+              color: color,
+              radius: 50,
+              title: '$value',
+              titleStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  // Dashboard para pre-seller
-  Widget _preSellerDashboard() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Text('Dashboard - Pre-Seller', style: TextStyle(fontSize: 24)),
-          const SizedBox(height: 20),
-          _buildNavigationButton('/meet_list', 'Visualizar Meets'),
-        ],
+  Widget _buildCard(String title, Widget chart) {
+    return SizedBox(
+      width: 400,
+      height: 350,
+      child: Card(
+        elevation: 5,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                title,
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              Expanded(child: chart),
+            ],
+          ),
+        ),
       ),
-    );
-  }
-
-  // Botão de navegação auxiliar
-  Widget _buildNavigationButton(String route, String label) {
-    return ElevatedButton(
-      onPressed: () {
-        Get.toNamed(route);
-      },
-      child: Text(label),
     );
   }
 }
