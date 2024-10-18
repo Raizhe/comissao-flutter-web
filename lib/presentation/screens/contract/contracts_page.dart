@@ -1,7 +1,7 @@
-import 'package:comissao_flutter_web/presentation/screens/contract/controllers/contracts_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../data/models/contract_model.dart';
+import 'controllers/contracts_controller.dart';
 
 class ContractsPage extends StatelessWidget {
   final ContractController _contractController = Get.put(ContractController());
@@ -10,8 +10,7 @@ class ContractsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Garante que os contratos sejam buscados quando a página é carregada
-    _contractController.fetchContracts();
+    _contractController.fetchContracts(); // Garante a busca dos contratos
 
     return Scaffold(
       appBar: AppBar(
@@ -26,7 +25,7 @@ class ContractsPage extends StatelessWidget {
         ],
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.symmetric(vertical: 16.0),
         child: Obx(() {
           if (_contractController.isLoading.value) {
             return const Center(child: CircularProgressIndicator());
@@ -45,7 +44,7 @@ class ContractsPage extends StatelessWidget {
             itemCount: _contractController.contracts.length,
             itemBuilder: (context, index) {
               final contract = _contractController.contracts[index];
-              return _buildContractCard(contract);
+              return _buildContractCard(context, contract);
             },
           );
         }),
@@ -53,76 +52,76 @@ class ContractsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildContractCard(ContractModel contract) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8.0),
-      elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              contract.clientName,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
+  Widget _buildContractCard(BuildContext context, ContractModel contract) {
+    return Center(
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 800), // Limita a largura máxima
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        child: InkWell(
+          onTap: () {
+            // Navegar para a tela de detalhes do contrato
+            Get.toNamed('/contracts_details', arguments: contract);
+          },
+
+          child: Card(
+            elevation: 4,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    contract.clientName,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildDetailRow('Tipo', contract.type),
+                  _buildDetailRow(
+                    'Valor',
+                    'R\$${contract.amount.toStringAsFixed(2)}',
+                    color: Colors.green,
+                  ),
+                  _buildDetailRow('Status', contract.status, color: Colors.blue),
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Icon(
+                      Icons.arrow_forward_ios,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Tipo: ${contract.type}',
-              style: const TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Valor: R\$${contract.amount.toStringAsFixed(2)}',
-              style: const TextStyle(fontSize: 16, color: Colors.green),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Status: ${contract.status}',
-              style: const TextStyle(fontSize: 16, color: Colors.blueAccent),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.edit, color: Colors.blue),
-                  onPressed: () {
-                    Get.toNamed('/contract_form', arguments: contract);
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.red),
-                  onPressed: () async {
-                    bool confirm = await _showDeleteConfirmationDialog();
-                    if (confirm) {
-                      await _contractController.deleteContract(contract.contractId);
-                    }
-                  },
-                ),
-              ],
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Future<bool> _showDeleteConfirmationDialog() async {
-    return await Get.defaultDialog(
-      title: 'Excluir Contrato',
-      middleText: 'Tem certeza que deseja excluir este contrato?',
-      textCancel: 'Cancelar',
-      textConfirm: 'Confirmar',
-      confirmTextColor: Colors.white,
-      onConfirm: () => Get.back(result: true),
-      onCancel: () => Get.back(result: false),
+  // Widget auxiliar para exibir uma linha de detalhe
+  Widget _buildDetailRow(String label, String value, {Color? color}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            '$label:',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          Text(
+            value,
+            style: TextStyle(fontSize: 16, color: color ?? Colors.black),
+          ),
+        ],
+      ),
     );
   }
 }

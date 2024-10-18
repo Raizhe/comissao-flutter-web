@@ -1,6 +1,7 @@
 import 'package:comissao_flutter_web/presentation/screens/clients/clients_form_page.dart';
 import 'package:comissao_flutter_web/presentation/screens/clients/clients_page.dart';
 import 'package:comissao_flutter_web/presentation/screens/contract/contract_form_page.dart';
+import 'package:comissao_flutter_web/presentation/screens/contract/contracts_details_page.dart';
 import 'package:comissao_flutter_web/presentation/screens/contract/contracts_page.dart';
 import 'package:comissao_flutter_web/presentation/screens/leads/leads_form_page.dart';
 import 'package:comissao_flutter_web/presentation/screens/leads/leads_page.dart';
@@ -34,24 +35,30 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.indigo,
       ),
-      initialRoute: '/', // Define a rota inicial como '/'
+      initialRoute: '/',
+      // Define a rota inicial como '/'
       getPages: [
         GetPage(name: '/', page: () => const AuthenticationWrapper()),
         GetPage(name: '/login', page: () => LoginPage()),
         GetPage(name: '/home', page: () => HomePage()),
-        GetPage(name: '/client_form', page: () =>  ClientFormPage()),
-        GetPage(name: '/pre_seller_form', page: () => const PreSellerFormPage()),
+        GetPage(name: '/client_form', page: () => ClientFormPage()),
+        GetPage(
+            name: '/pre_seller_form', page: () => const PreSellerFormPage()),
         GetPage(name: '/seller_form', page: () => SellerFormPage()),
         GetPage(name: '/user_form', page: () => UserFormPage()),
         GetPage(name: '/contract_form', page: () => ContractFormPage()),
         GetPage(name: '/meet_form', page: () => MeetFormPage()),
         GetPage(name: '/lead_form', page: () => LeadFormPage()),
-        GetPage(name: '/leads_page', page: () => LeadPage()),
+        GetPage(name: '/leads_page', page: () => const LeadPage()),
         GetPage(name: '/contracts_page', page: () => ContractsPage()),
         GetPage(name: '/clients_page', page: () => ClientsPage()),
         GetPage(name: '/meet_page', page: () => MeetPage()),
-
-
+        GetPage(
+          name: '/contracts_details',
+          page: () => ContractDetailsPage(
+            contract: Get.arguments,
+          ),
+        ),
       ],
     );
   }

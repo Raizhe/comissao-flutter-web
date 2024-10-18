@@ -59,6 +59,11 @@ class SidebarWidget extends StatelessWidget {
                   text: 'Comissões',
                   route: '/commission_form',
                 ),
+                _buildDrawerItem(
+                  icon: Icons.business,
+                  text: 'Cliente',
+                  route: '/client_form',
+                ),
               ],
               if (role == 'seller' || role == 'pre_seller') ...[
                 _buildDrawerItem(

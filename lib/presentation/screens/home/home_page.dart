@@ -68,13 +68,13 @@ class HomePage extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Wrap(
-                  spacing: 20, // Espaço horizontal entre os cards
-                  runSpacing: 20, // Espaço vertical entre os cards
+                  spacing: 20,
+                  runSpacing: 20,
                   alignment: WrapAlignment.center,
                   children: [
-                    _buildChart('Leads', data['leads']!, Colors.blue),
-                    _buildChart('Contratos', data['contracts']!, Colors.green),
-                    _buildChart('Clientes', data['clients']!, Colors.red),
+                    _buildChart('Leads', data['leads']!, Colors.blue, 'linha'),
+                    _buildChart('Contratos', data['contracts']!, Colors.green, 'coluna'),
+                    _buildChart('Clientes', data['clients']!, Colors.deepPurple , 'pizza'),
                   ],
                 ),
               ),
@@ -97,10 +97,95 @@ class HomePage extends StatelessWidget {
     };
   }
 
-  Widget _buildChart(String title, int value, Color color) {
+  Widget _buildChart(String title, int value, Color color, String type) {
+    switch (type) {
+      case 'linha':
+        return _buildLineChart(title, value, color);
+      case 'coluna':
+        return _buildBarChart(title, value, color);
+      case 'pizza':
+        return _buildPieChart(title, value, color);
+      default:
+        return const Text('Tipo de gráfico não encontrado.');
+    }
+  }
+
+  Widget _buildLineChart(String title, int value, Color color) {
+    return _buildCard(
+      title,
+      LineChart(
+        LineChartData(
+          minY: 0,
+          maxY: (value + 10).toDouble(),
+          gridData: FlGridData(show: true),
+          borderData: FlBorderData(
+            show: true,
+            border: const Border(
+              bottom: BorderSide(color: Colors.black, width: 2),
+              left: BorderSide(color: Colors.black, width: 2),
+            ),
+          ),
+          titlesData: FlTitlesData(show: true),
+          lineBarsData: [
+            LineChartBarData(
+              spots: [FlSpot(0, 0), FlSpot(1, value.toDouble())],
+              isCurved: true,
+              barWidth: 3,
+              color: color,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBarChart(String title, int value, Color color) {
+    return _buildCard(
+      title,
+      BarChart(
+        BarChartData(
+          alignment: BarChartAlignment.center,
+          maxY: value.toDouble() + 10,
+          barGroups: [
+            BarChartGroupData(
+              x: 0,
+              barRods: [
+                BarChartRodData(
+                  toY: value.toDouble(),
+                  color: color,
+                  width: 20,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPieChart(String title, int value, Color color) {
+    return _buildCard(
+      title,
+      PieChart(
+        PieChartData(
+          sections: [
+            PieChartSectionData(
+              value: value.toDouble(),
+              color: color,
+              radius: 50,
+              title: '$value',
+              titleStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCard(String title, Widget chart) {
     return SizedBox(
-      width: 200, // Largura ajustada do card
-      height: 250, // Altura ajustada do card
+      width: 400,
+      height: 350,
       child: Card(
         elevation: 5,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -115,56 +200,7 @@ class HomePage extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 12),
-              Expanded(
-                child: LineChart(
-                  LineChartData(
-                    minY: 0,
-                    maxY: (value + 10).toDouble(), // Ajusta o eixo Y dinamicamente
-                    gridData: FlGridData(show: false),
-                    borderData: FlBorderData(
-                      show: true,
-                      border: const Border(
-                        bottom: BorderSide(color: Colors.black, width: 2),
-                        left: BorderSide(color: Colors.black, width: 2),
-                        right: BorderSide.none,
-                        top: BorderSide.none,
-                      ),
-                    ),
-                    titlesData: FlTitlesData(
-                      bottomTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          interval: 1,
-                          getTitlesWidget: (value, _) {
-                            return Text(
-                              value.toInt() == 0 ? 'Início' : 'Atual',
-                              style: const TextStyle(fontSize: 12),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                    lineBarsData: [
-                      LineChartBarData(
-                        spots: [
-                          FlSpot(0, 0),
-                          FlSpot(1, value.toDouble()), // Valor dinâmico
-                        ],
-                        isCurved: true,
-                        barWidth: 4,
-                        color: color,
-                        belowBarData: BarAreaData(show: false),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '$value', // Mostra o valor do Firestore
-                style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
-              ),
+              Expanded(child: chart),
             ],
           ),
         ),

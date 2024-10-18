@@ -15,7 +15,7 @@ class ClientsPage extends StatelessWidget {
         title: const Text('Clientes'),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(12.0), // Margem geral
+        padding: const EdgeInsets.all(16.0),
         child: Obx(() {
           if (_clientsController.isLoading.value) {
             return const Center(child: CircularProgressIndicator());
@@ -30,19 +30,24 @@ class ClientsPage extends StatelessWidget {
             );
           }
 
-          // Exibe clientes em uma grade
-          return GridView.builder(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2, // Número de colunas
-              crossAxisSpacing: 16.0, // Espaço horizontal entre os cards
-              mainAxisSpacing: 16.0, // Espaço vertical entre os cards
-              childAspectRatio: 3 / 2, // Proporção largura/altura dos cards
+          // Exibe clientes em uma grade centralizada e elegante
+          return Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 800),
+              child: GridView.builder(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2, // Duas colunas na grade
+                  crossAxisSpacing: 16.0, // Espaço entre colunas
+                  mainAxisSpacing: 16.0, // Espaço entre linhas
+                  childAspectRatio: 3 / 2, // Proporção do card
+                ),
+                itemCount: _clientsController.clients.length,
+                itemBuilder: (context, index) {
+                  final client = _clientsController.clients[index];
+                  return _buildClientCard(client);
+                },
+              ),
             ),
-            itemCount: _clientsController.clients.length,
-            itemBuilder: (context, index) {
-              final client = _clientsController.clients[index];
-              return _buildClientCard(client);
-            },
           );
         }),
       ),
@@ -70,11 +75,23 @@ class ClientsPage extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            Text('Empresa: ${client.companyName}', style: const TextStyle(fontSize: 14)),
+            Text(
+              'Empresa: ${client.companyName}',
+              style: const TextStyle(fontSize: 14),
+            ),
             const SizedBox(height: 4),
-            Text('Telefone: ${client.phone ?? "Não disponível"}', style: const TextStyle(fontSize: 14)),
+            Text(
+              'Telefone: ${client.phone ?? "Não disponível"}',
+              style: const TextStyle(fontSize: 14),
+            ),
             const SizedBox(height: 4),
-            Text('Situação: ${client.situation}', style: const TextStyle(fontSize: 14, color: Colors.blueAccent)),
+            Text(
+              'Situação: ${client.situation}',
+              style: const TextStyle(
+                fontSize: 14,
+                color: Colors.blueAccent,
+              ),
+            ),
             const SizedBox(height: 12),
             Align(
               alignment: Alignment.centerRight,

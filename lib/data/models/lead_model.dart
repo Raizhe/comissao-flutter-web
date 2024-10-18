@@ -1,3 +1,5 @@
+
+
 class LeadModel {
   String leadId;
   String name; // Nome da Oportunidade
