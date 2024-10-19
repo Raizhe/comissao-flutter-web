@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class ClientModel {
   String clientId;
   String clientName;
-  String companyName; // Razão Social
+  String companyName;
   String? clientEmail;
   String? phone;
   String? cellPhone;
@@ -16,8 +16,8 @@ class ClientModel {
   String? sellerId;
   List<String> contracts;
   DateTime registeredAt;
-  String situation; // Situação (Ativo, Em Prospecção, Inativo)
-  String? group; // Grupo de Clientes (novo campo)
+  String situation;
+  String? group;
   String? cnpj;
   String? cpf;
 
@@ -43,7 +43,19 @@ class ClientModel {
     this.cpf,
   });
 
-  // Converter um ClientModel para JSON (para enviar ao Firestore)
+  // Construtor vazio para evitar erros nulos
+  factory ClientModel.empty() {
+    return ClientModel(
+      clientId: '',
+      clientName: '',
+      companyName: '',
+      contracts: [],
+      registeredAt: DateTime.now(),
+      situation: 'Indefinido',
+    );
+  }
+
+  // Conversão para JSON
   Map<String, dynamic> toJson() {
     return {
       'clientId': clientId,
@@ -68,7 +80,7 @@ class ClientModel {
     };
   }
 
-  // Converter JSON para um ClientModel (para ler do Firestore)
+  // Conversão de JSON para ClientModel
   factory ClientModel.fromJson(Map<String, dynamic> json) {
     return ClientModel(
       clientId: json['clientId'] ?? '',
