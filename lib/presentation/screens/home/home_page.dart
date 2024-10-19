@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:fl_chart/fl_chart.dart';
 import '../../../data/repositories/user_repository.dart';
 import '../../../widgets/side_bar_widget.dart';
-import 'package:fl_chart/fl_chart.dart';
 
 class HomePage extends StatelessWidget {
   final UserRepository userRepository = UserRepository();
@@ -25,6 +25,20 @@ class HomePage extends StatelessWidget {
       print('Erro ao buscar contagem: $e');
       return 0;
     }
+  }
+
+  Future<Map<String, int>> _fetchAllMetrics() async {
+    int salesCount = await _getCount('contracts'); // Número de vendas
+    int leadsCount = await _getCount('leads'); // Número de leads
+    int clientsCount = await _getCount('clients'); // Número de clientes
+    int meetingsCount = await _getCount('meets'); // Número de reuniões
+
+    return {
+      'sales': salesCount,
+      'leads': leadsCount,
+      'clients': clientsCount,
+      'meetings': meetingsCount,
+    };
   }
 
   @override
@@ -55,155 +69,145 @@ class HomePage extends StatelessWidget {
           }
         },
       ),
-      body: FutureBuilder<Map<String, int>>(
-        future: _fetchData(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return const Center(child: Text('Erro ao carregar dados.'));
-          } else {
-            final data = snapshot.data!;
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Wrap(
-                  spacing: 20,
-                  runSpacing: 20,
-                  alignment: WrapAlignment.center,
-                  children: [
-                    _buildChart('Leads', data['leads']!, Colors.blue, 'linha'),
-                    _buildChart('Contratos', data['contracts']!, Colors.green, 'coluna'),
-                    _buildChart('Clientes', data['clients']!, Colors.deepPurple , 'pizza'),
-                  ],
-                ),
-              ),
-            );
-          }
-        },
-      ),
-    );
-  }
-
-  Future<Map<String, int>> _fetchData() async {
-    int leadsCount = await _getCount('leads');
-    int contractsCount = await _getCount('contracts');
-    int clientsCount = await _getCount('clients');
-
-    return {
-      'leads': leadsCount,
-      'contracts': contractsCount,
-      'clients': clientsCount,
-    };
-  }
-
-  Widget _buildChart(String title, int value, Color color, String type) {
-    switch (type) {
-      case 'linha':
-        return _buildLineChart(title, value, color);
-      case 'coluna':
-        return _buildBarChart(title, value, color);
-      case 'pizza':
-        return _buildPieChart(title, value, color);
-      default:
-        return const Text('Tipo de gráfico não encontrado.');
-    }
-  }
-
-  Widget _buildLineChart(String title, int value, Color color) {
-    return _buildCard(
-      title,
-      LineChart(
-        LineChartData(
-          minY: 0,
-          maxY: (value + 10).toDouble(),
-          gridData: FlGridData(show: true),
-          borderData: FlBorderData(
-            show: true,
-            border: const Border(
-              bottom: BorderSide(color: Colors.black, width: 2),
-              left: BorderSide(color: Colors.black, width: 2),
-            ),
-          ),
-          titlesData: FlTitlesData(show: true),
-          lineBarsData: [
-            LineChartBarData(
-              spots: [FlSpot(0, 0), FlSpot(1, value.toDouble())],
-              isCurved: true,
-              barWidth: 3,
-              color: color,
-            ),
-          ],
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: FutureBuilder<Map<String, int>>(
+          future: _fetchAllMetrics(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              return const Center(child: Text('Erro ao carregar métricas.'));
+            } else {
+              final data = snapshot.data!;
+              return Column(
+                children: [
+                  const Center(
+                    child: Text(
+                      'Dashboard Comparativo',
+                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Expanded(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        return Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          alignment: WrapAlignment.center,
+                          children: [
+                            _buildFlexibleMetricCard(
+                                'Vendas', data['sales']!, Colors.red, constraints),
+                            _buildFlexibleMetricCard(
+                                'Leads', data['leads']!, Colors.blue, constraints),
+                            _buildFlexibleMetricCard(
+                                'Clientes', data['clients']!, Colors.purple, constraints),
+                            _buildFlexibleMetricCard(
+                                'Reuniões', data['meetings']!, Colors.green, constraints),
+                            _buildFlexibleChart(_buildPieChart(data), constraints),
+                            _buildFlexibleChart(_buildBarChart(data), constraints),
+                          ],
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              );
+            }
+          },
         ),
       ),
     );
   }
 
-  Widget _buildBarChart(String title, int value, Color color) {
-    return _buildCard(
-      title,
-      BarChart(
-        BarChartData(
-          alignment: BarChartAlignment.center,
-          maxY: value.toDouble() + 10,
-          barGroups: [
-            BarChartGroupData(
-              x: 0,
-              barRods: [
-                BarChartRodData(
-                  toY: value.toDouble(),
-                  color: color,
-                  width: 20,
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPieChart(String title, int value, Color color) {
-    return _buildCard(
-      title,
-      PieChart(
-        PieChartData(
-          sections: [
-            PieChartSectionData(
-              value: value.toDouble(),
-              color: color,
-              radius: 50,
-              title: '$value',
-              titleStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCard(String title, Widget chart) {
+  Widget _buildFlexibleMetricCard(
+      String title, int value, Color color, BoxConstraints constraints) {
+    double width = (constraints.maxWidth / 2) - 20;
     return SizedBox(
-      width: 400,
-      height: 350,
+      width: width.clamp(150, 300),
       child: Card(
         elevation: 5,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              Text(title, style: const TextStyle(fontSize: 16)),
               Text(
-                title,
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
+                value.toString(),
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
               ),
-              const SizedBox(height: 12),
-              Expanded(child: chart),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildFlexibleChart(Widget chart, BoxConstraints constraints) {
+    double size = (constraints.maxWidth / 2) - 20;
+    return SizedBox(
+      width: size.clamp(200, 300),
+      height: size.clamp(200, 300),
+      child: Card(
+        elevation: 5,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: chart,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPieChart(Map<String, int> data) {
+    return PieChart(
+      PieChartData(
+        sections: [
+          PieChartSectionData(
+            value: data['leads']!.toDouble(),
+            color: Colors.blue,
+            title: 'Leads',
+          ),
+          PieChartSectionData(
+            value: data['sales']!.toDouble(),
+            color: Colors.green,
+            title: 'Vendas',
+          ),
+          PieChartSectionData(
+            value: data['clients']!.toDouble(),
+            color: Colors.purple,
+            title: 'Clientes',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBarChart(Map<String, int> data) {
+    return BarChart(
+      BarChartData(
+        alignment: BarChartAlignment.center,
+        maxY: (data.values.reduce((a, b) => a > b ? a : b)).toDouble() + 10,
+        barGroups: [
+          BarChartGroupData(
+            x: 0,
+            barRods: [BarChartRodData(toY: data['leads']!.toDouble(), color: Colors.blue)],
+          ),
+          BarChartGroupData(
+            x: 1,
+            barRods: [BarChartRodData(toY: data['sales']!.toDouble(), color: Colors.green)],
+          ),
+          BarChartGroupData(
+            x: 2,
+            barRods: [BarChartRodData(toY: data['clients']!.toDouble(), color: Colors.purple)],
+          ),
+        ],
       ),
     );
   }

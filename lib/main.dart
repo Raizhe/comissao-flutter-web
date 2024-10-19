@@ -1,3 +1,4 @@
+import 'package:comissao_flutter_web/presentation/screens/clients/clients_details_page.dart';
 import 'package:comissao_flutter_web/presentation/screens/clients/clients_form_page.dart';
 import 'package:comissao_flutter_web/presentation/screens/clients/clients_page.dart';
 import 'package:comissao_flutter_web/presentation/screens/contract/contract_form_page.dart';
@@ -53,6 +54,10 @@ class MyApp extends StatelessWidget {
         GetPage(name: '/contracts_page', page: () => ContractsPage()),
         GetPage(name: '/clients_page', page: () => ClientsPage()),
         GetPage(name: '/meet_page', page: () => MeetPage()),
+        GetPage(
+          name: '/client_details',
+          page: () => ClientDetailsPage(),
+        ),
         GetPage(
           name: '/contracts_details',
           page: () => ContractDetailsPage(

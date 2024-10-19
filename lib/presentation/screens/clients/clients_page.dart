@@ -30,17 +30,11 @@ class ClientsPage extends StatelessWidget {
             );
           }
 
-          // Exibe clientes em uma grade centralizada e elegante
+          // Exibe os clientes em uma lista centralizada e compacta
           return Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 800),
-              child: GridView.builder(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2, // Duas colunas na grade
-                  crossAxisSpacing: 16.0, // Espaço entre colunas
-                  mainAxisSpacing: 16.0, // Espaço entre linhas
-                  childAspectRatio: 3 / 2, // Proporção do card
-                ),
+              constraints: const BoxConstraints(maxWidth: 600), // Limita a largura
+              child: ListView.builder(
                 itemCount: _clientsController.clients.length,
                 itemBuilder: (context, index) {
                   final client = _clientsController.clients[index];
@@ -56,71 +50,60 @@ class ClientsPage extends StatelessWidget {
 
   // Widget para construir um card de cliente
   Widget _buildClientCard(ClientModel client) {
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.0), // Bordas arredondadas
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              client.clientName,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+    return InkWell(
+      onTap: () {
+        Get.toNamed('/client_details', arguments: client); // Navega para os detalhes
+      },
+      child: Card(
+        elevation: 4,
+        margin: const EdgeInsets.symmetric(vertical: 8.0), // Espaço entre os cards
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.0), // Bordas arredondadas
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                client.clientName,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Empresa: ${client.companyName}',
-              style: const TextStyle(fontSize: 14),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Telefone: ${client.phone ?? "Não disponível"}',
-              style: const TextStyle(fontSize: 14),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Situação: ${client.situation}',
-              style: const TextStyle(
-                fontSize: 14,
-                color: Colors.blueAccent,
+              const SizedBox(height: 8),
+              Text(
+                'Empresa: ${client.companyName}',
+                style: const TextStyle(fontSize: 14),
               ),
-            ),
-            const SizedBox(height: 12),
-            Align(
-              alignment: Alignment.centerRight,
-              child: IconButton(
-                icon: const Icon(Icons.delete, color: Colors.red),
-                onPressed: () async {
-                  bool confirm = await _showDeleteConfirmationDialog();
-                  if (confirm) {
-                    await _clientsController.deleteClient(client.clientId);
-                  }
-                },
+              const SizedBox(height: 4),
+              Text(
+                'Telefone: ${client.phone ?? "Não disponível"}',
+                style: const TextStyle(fontSize: 14),
               ),
-            ),
-          ],
+              const SizedBox(height: 4),
+              Text(
+                'Situação: ${client.situation}',
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Colors.blueAccent,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerRight,
+                child: IconButton(
+                  icon: const Icon(Icons.settings, color: Colors.grey),
+                  onPressed: () {
+                    Get.toNamed('/client_form', arguments: client); // Editar cliente
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-    );
-  }
-
-  // Diálogo de confirmação para excluir cliente
-  Future<bool> _showDeleteConfirmationDialog() async {
-    return await Get.defaultDialog(
-      title: 'Excluir Cliente',
-      middleText: 'Tem certeza que deseja excluir este cliente?',
-      textCancel: 'Cancelar',
-      textConfirm: 'Confirmar',
-      confirmTextColor: Colors.white,
-      onConfirm: () => Get.back(result: true),
-      onCancel: () => Get.back(result: false),
     );
   }
 }
