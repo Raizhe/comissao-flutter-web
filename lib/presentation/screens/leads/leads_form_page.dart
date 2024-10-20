@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:uuid/uuid.dart';
-import 'package:intl/intl.dart'; // Para formatar a data
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 import '../../../data/models/lead_model.dart';
 import '../../../data/models/meet_model.dart';
+import '../../../data/models/seller_model.dart';
 import '../../../data/repositories/lead_repository.dart';
 import '../../../data/repositories/meet_repository.dart';
 
@@ -14,17 +16,18 @@ class LeadFormPage extends StatefulWidget {
 
 class _LeadFormPageState extends State<LeadFormPage> {
   final _nomeOportunidadeController = TextEditingController();
-  final _vendedorController = TextEditingController();
   final _linkController = TextEditingController();
-  String? _origem; // Armazena a origem selecionada (Inbound/Outbound)
-  DateTime? _dataReuniao; // Armazena a data selecionada
+  String? _origem;
+  String? _selectedSeller; // Vendedor selecionado
+  DateTime? _dataReuniao;
+  TimeOfDay? _horaReuniao;
 
   final LeadRepository _leadRepository = LeadRepository();
   final MeetRepository _meetRepository = MeetRepository();
-  bool _isLoading = false; // Controla o estado de carregamento
+  bool _isLoading = false;
 
   Future<void> _addLead() async {
-    if (_origem == null || _dataReuniao == null) {
+    if (_origem == null || _dataReuniao == null || _horaReuniao == null || _selectedSeller == null) {
       Get.snackbar(
         'Erro',
         'Por favor, preencha todos os campos obrigatórios.',
@@ -35,29 +38,33 @@ class _LeadFormPageState extends State<LeadFormPage> {
     }
 
     try {
-      setState(() {
-        _isLoading = true;
-      });
+      setState(() => _isLoading = true);
 
       String leadId = const Uuid().v4();
       String meetId = const Uuid().v4();
 
-      // Criação do Lead
+      final DateTime dataHoraReuniao = DateTime(
+        _dataReuniao!.year,
+        _dataReuniao!.month,
+        _dataReuniao!.day,
+        _horaReuniao!.hour,
+        _horaReuniao!.minute,
+      );
+
       LeadModel lead = LeadModel(
         leadId: leadId,
         name: _nomeOportunidadeController.text.trim(),
-        sdr: 'SDR1', // Pode ser dinâmico se necessário
-        vendedor: _vendedorController.text.trim(),
+        sdr: 'SDR1',
+        vendedor: _selectedSeller!,
         link: _linkController.text.trim(),
         origem: _origem!,
       );
 
-      // Criação da Reunião associada
       MeetModel meet = MeetModel(
         meetId: meetId,
         leadId: leadId,
         dataAgendamento: DateTime.now(),
-        dataMeet: _dataReuniao!,
+        dataMeet: dataHoraReuniao,
         status: 'Pendente',
       );
 
@@ -80,13 +87,15 @@ class _LeadFormPageState extends State<LeadFormPage> {
         colorText: Colors.white,
       );
     } finally {
-      setState(() {
-        _isLoading = false;
-      });
+      setState(() => _isLoading = false);
     }
   }
 
-  // Abre o seletor de datas
+  Future<List<SellerModel>> _fetchSellers() async {
+    QuerySnapshot snapshot = await FirebaseFirestore.instance.collection('sellers').get();
+    return snapshot.docs.map((doc) => SellerModel.fromFirestore(doc)).toList();
+  }
+
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -94,10 +103,18 @@ class _LeadFormPageState extends State<LeadFormPage> {
       firstDate: DateTime.now(),
       lastDate: DateTime(2100),
     );
-    if (picked != null && picked != _dataReuniao) {
-      setState(() {
-        _dataReuniao = picked;
-      });
+    if (picked != null) {
+      setState(() => _dataReuniao = picked);
+    }
+  }
+
+  Future<void> _selectTime(BuildContext context) async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+    );
+    if (picked != null) {
+      setState(() => _horaReuniao = picked);
     }
   }
 
@@ -106,41 +123,79 @@ class _LeadFormPageState extends State<LeadFormPage> {
     return Scaffold(
       appBar: AppBar(title: const Text('Cadastrar Lead')),
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            if (_isLoading)
-              const Center(
-                child: CircularProgressIndicator(),
-              )
-            else
-              Expanded(
-                child: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 32.0),
+        child: Center(
+          child: Card(
+            elevation: 10,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(32.0),
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    const Text(
+                      'Cadastro de Lead',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
                     TextField(
                       controller: _nomeOportunidadeController,
                       decoration: const InputDecoration(
                         labelText: 'Nome da Oportunidade',
+                        border: OutlineInputBorder(),
                       ),
                     ),
-                    TextField(
-                      controller: _vendedorController,
-                      decoration: const InputDecoration(
-                        labelText: 'Vendedor',
-                      ),
+                    const SizedBox(height: 16),
+                    FutureBuilder<List<SellerModel>>(
+                      future: _fetchSellers(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const CircularProgressIndicator();
+                        } else if (snapshot.hasError) {
+                          return const Text('Erro ao carregar vendedores');
+                        } else {
+                          final sellers = snapshot.data!;
+                          return DropdownButtonFormField<String>(
+                            value: _selectedSeller,
+                            decoration: const InputDecoration(
+                              labelText: 'Vendedor',
+                              border: OutlineInputBorder(),
+                            ),
+                            items: sellers.map((seller) {
+                              return DropdownMenuItem(
+                                value: seller.name,
+                                child: Text(seller.name),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              setState(() => _selectedSeller = value);
+                            },
+                          );
+                        }
+                      },
                     ),
+                    const SizedBox(height: 16),
                     TextField(
                       controller: _linkController,
                       decoration: const InputDecoration(
                         labelText: 'Link da Oportunidade',
+                        border: OutlineInputBorder(),
                       ),
                     ),
                     const SizedBox(height: 16),
-                    // Dropdown para selecionar a origem
                     DropdownButtonFormField<String>(
                       value: _origem,
                       decoration: const InputDecoration(
                         labelText: 'Origem',
+                        border: OutlineInputBorder(),
                       ),
                       items: ['Inbound', 'Outbound']
                           .map((String value) => DropdownMenuItem(
@@ -149,29 +204,48 @@ class _LeadFormPageState extends State<LeadFormPage> {
                       ))
                           .toList(),
                       onChanged: (value) {
-                        setState(() {
-                          _origem = value;
-                        });
+                        setState(() => _origem = value);
                       },
                     ),
                     const SizedBox(height: 16),
-                    // Botão para selecionar a data da reunião
                     ListTile(
                       leading: const Icon(Icons.calendar_today),
-                      title: Text(_dataReuniao == null
-                          ? 'Selecione a Data da Reunião'
-                          : 'Data: ${DateFormat('dd/MM/yyyy').format(_dataReuniao!)}'),
+                      title: Text(
+                        _dataReuniao == null
+                            ? 'Selecione a Data da Reunião'
+                            : 'Data: ${DateFormat('dd/MM/yyyy').format(_dataReuniao!)}',
+                      ),
                       onTap: () => _selectDate(context),
                     ),
-                    const SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: _addLead,
-                      child: const Text('Cadastrar Lead'),
+                    const SizedBox(height: 16),
+                    ListTile(
+                      leading: const Icon(Icons.access_time),
+                      title: Text(
+                        _horaReuniao == null
+                            ? 'Selecione a Hora da Reunião'
+                            : 'Hora: ${_horaReuniao!.format(context)}',
+                      ),
+                      onTap: () => _selectTime(context),
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _addLead,
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16.0),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text('Cadastrar Lead'),
+                      ),
                     ),
                   ],
                 ),
               ),
-          ],
+            ),
+          ),
         ),
       ),
     );

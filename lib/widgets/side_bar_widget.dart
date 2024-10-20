@@ -64,6 +64,11 @@ class SidebarWidget extends StatelessWidget {
                   text: 'Cliente',
                   route: '/client_form',
                 ),
+                _buildDrawerItem(
+                  icon: Icons.business,
+                  text: 'Vendedores',
+                  route: '/seller_form',
+                ),
               ],
               if (role == 'seller' || role == 'pre_seller') ...[
                 _buildDrawerItem(
