@@ -11,15 +11,12 @@ class ClientFormPage extends StatelessWidget {
   final _companyNameController = TextEditingController();
   final _emailController = TextEditingController();
 
-  // Controladores com máscaras
   final _cnpjController = MaskedTextController(mask: '00.000.000/0000-00');
   final _cpfController = MaskedTextController(mask: '000.000.000-00');
   final _phoneController = MaskedTextController(mask: '(00) 0000-0000');
   final _cellPhoneController = MaskedTextController(mask: '(00) 00000-0000');
-  final _stateInscriptionController =
-  MaskedTextController(mask: '000.000.000.000');
-  final _municipalInscriptionController =
-  MaskedTextController(mask: '00000000-0');
+  final _stateInscriptionController = MaskedTextController(mask: '000.000.000.000');
+  final _municipalInscriptionController = MaskedTextController(mask: '00000000-0');
 
   final _websiteController = TextEditingController();
   final _addressController = TextEditingController();
@@ -33,10 +30,8 @@ class ClientFormPage extends StatelessWidget {
 
   Future<void> _addClient() async {
     try {
-      // Gerar um ID único para o cliente
       String clientId = const Uuid().v4();
 
-      // Criar o modelo de cliente com os dados preenchidos
       ClientModel client = ClientModel(
         clientId: clientId,
         clientName: _nameController.text.trim(),
@@ -59,19 +54,12 @@ class ClientFormPage extends StatelessWidget {
         cpf: _cpfController.text.trim(),
       );
 
-      // Adicionar o cliente via ClientController
-      //await _clientController.addClient(client);
+      await _clientController.addClient(client);
 
-      // Mostrar mensagem de sucesso
       SuccessDialog.showSuccess('Cliente cadastrado com sucesso!');
-
-      // Limpar os campos após o cadastro
       _clearFields();
-
-      // Redirecionar para a Home Page
       Get.offAllNamed('/home');
     } catch (e) {
-      // Mostrar mensagem de erro
       SuccessDialog.showError('Erro ao cadastrar cliente: $e');
     }
   }
@@ -96,101 +84,100 @@ class ClientFormPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFEFEFEF),
       appBar: AppBar(
         title: const Text('Cadastrar Cliente'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Obx(() {
-          return _clientController.isLoading.value
-              ? const Center(child: CircularProgressIndicator())
-              : SingleChildScrollView(
-            child: Column(
-              children: [
-                TextField(
-                  controller: _nameController,
-                  decoration:
-                  const InputDecoration(labelText: 'Nome do Cliente'),
+      body: Center(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: SizedBox(
+              width: 600, // Define a largura do card
+              child: Card(
+                elevation: 8.0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20.0),
                 ),
-                TextField(
-                  controller: _companyNameController,
-                  decoration:
-                  const InputDecoration(labelText: 'Razão Social'),
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Text(
+                        'Cadastro de Cliente',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      _buildFormGrid(),
+                      const SizedBox(height: 24),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16.0),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12.0),
+                          ),
+                        ),
+                        onPressed: _addClient,
+                        child: const Text(
+                          'Cadastrar',
+                          style: TextStyle(fontSize: 18),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                TextField(
-                  controller: _cnpjController,
-                  decoration:
-                  const InputDecoration(labelText: 'CNPJ'),
-                  keyboardType: TextInputType.number,
-                ),
-                TextField(
-                  controller: _emailController,
-                  decoration: const InputDecoration(labelText: 'Email'),
-                  keyboardType: TextInputType.emailAddress,
-                ),
-                TextField(
-                  controller: _phoneController,
-                  decoration:
-                  const InputDecoration(labelText: 'Telefone'),
-                  keyboardType: TextInputType.phone,
-                ),
-                TextField(
-                  controller: _cellPhoneController,
-                  decoration:
-                  const InputDecoration(labelText: 'Celular'),
-                  keyboardType: TextInputType.phone,
-                ),
-                TextField(
-                  controller: _websiteController,
-                  decoration:
-                  const InputDecoration(labelText: 'Website'),
-                ),
-                TextField(
-                  controller: _addressController,
-                  decoration:
-                  const InputDecoration(labelText: 'Endereço'),
-                ),
-                TextField(
-                  controller: _stateInscriptionController,
-                  decoration: const InputDecoration(
-                      labelText: 'Inscrição Estadual'),
-                  keyboardType: TextInputType.number,
-                ),
-                TextField(
-                  controller: _municipalInscriptionController,
-                  decoration: const InputDecoration(
-                      labelText: 'Inscrição Municipal'),
-                  keyboardType: TextInputType.number,
-                ),
-                TextField(
-                  controller: _projectModelController,
-                  decoration: const InputDecoration(
-                      labelText: 'Modelo de Projeto'),
-                ),
-                TextField(
-                  controller: _cpfController,
-                  decoration: const InputDecoration(labelText: 'CPF'),
-                  keyboardType: TextInputType.number,
-                ),
-                TextField(
-                  controller: _situationController,
-                  decoration: const InputDecoration(
-                      labelText: 'Situação (Ativo/Prospeção/Inativo)'),
-                ),
-                TextField(
-                  controller: _groupController,
-                  decoration: const InputDecoration(
-                      labelText: 'Grupo de Clientes'),
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: _addClient,
-                  child: const Text('Cadastrar Cliente'),
-                ),
-              ],
+              ),
             ),
-          );
-        }),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFormGrid() {
+    return GridView(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2, // Dois campos por linha
+        childAspectRatio: 3,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+      ),
+      children: [
+        _buildTextField(_nameController, 'Nome do Cliente'),
+        _buildTextField(_companyNameController, 'Razão Social'),
+        _buildTextField(_cnpjController, 'CNPJ', TextInputType.number),
+        _buildTextField(_cpfController, 'CPF', TextInputType.number),
+        _buildTextField(_emailController, 'Email', TextInputType.emailAddress),
+        _buildTextField(_phoneController, 'Telefone', TextInputType.phone),
+        _buildTextField(_cellPhoneController, 'Celular', TextInputType.phone),
+        _buildTextField(_websiteController, 'Website'),
+        _buildTextField(_addressController, 'Endereço'),
+        _buildTextField(_stateInscriptionController, 'Inscrição Estadual'),
+        _buildTextField(_municipalInscriptionController, 'Inscrição Municipal'),
+        _buildTextField(_projectModelController, 'Modelo de Projeto'),
+        _buildTextField(_situationController, 'Situação'),
+        _buildTextField(_groupController, 'Grupo de Clientes'),
+      ],
+    );
+  }
+
+  Widget _buildTextField(
+      TextEditingController controller, String label, [TextInputType? type]) {
+    return TextField(
+      controller: controller,
+      keyboardType: type,
+      decoration: InputDecoration(
+        labelText: label,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12.0),
+        ),
       ),
     );
   }

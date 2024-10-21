@@ -38,11 +38,6 @@ class SidebarWidget extends StatelessWidget {
                 text: 'Leads',
                 route: '/lead_form',
               ),
-              _buildDrawerItem(
-                icon: Icons.meeting_room,
-                text: 'Reuniões',
-                route: '/meet_form',
-              ),
               if (role == 'admin' || role == 'manager') ...[
                 _buildDrawerItem(
                   icon: Icons.person,
@@ -63,6 +58,11 @@ class SidebarWidget extends StatelessWidget {
                   icon: Icons.business,
                   text: 'Cliente',
                   route: '/client_form',
+                ),
+                _buildDrawerItem(
+                  icon: Icons.business,
+                  text: 'Vendedores',
+                  route: '/seller_form',
                 ),
               ],
               if (role == 'seller' || role == 'pre_seller') ...[

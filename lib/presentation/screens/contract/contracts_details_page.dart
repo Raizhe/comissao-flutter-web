@@ -31,58 +31,59 @@ class ContractDetailsPage extends StatelessWidget {
               ),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Contrato: ${contract.clientName}',
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Contrato: ${contract.clientName}',
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    _buildDetailRow('ID do Contrato', contract.contractId),
-                    _buildDetailRow('Tipo', contract.type),
-                    _buildDetailRow(
-                      'Valor',
-                      'R\$${contract.amount.toStringAsFixed(2)}',
-                    ),
-                    _buildDetailRow('Status', contract.status),
-                    _buildDetailRow(
-                      'Data de Início',
-                      _formatDate(contract.startDate),
-                    ),
-                    _buildDetailRow(
-                      'Data de Término',
-                      _formatDate(contract.endDate),
-                    ),
-                    _buildDetailRow(
-                      'Data de Criação',
-                      _formatDate(contract.createdAt),
-                    ),
-                    _buildDetailRow('Método de Pagamento', contract.paymentMethod),
-                    _buildDetailRow(
-                      'Parcelas',
-                      '${contract.installments.toString()}x',
-                    ),
-                    _buildDetailRow('Tipo de Renovação', contract.renewalType),
-                    _buildDetailRow('ID do Cliente', contract.clientId),
-                    _buildDetailRow('Vendedor', contract.sellerId),
-                    _buildDetailRow('Pré-Vendedor', contract.preSellerId),
-                    _buildDetailRow('Origem de Vendas', contract.salesOrigin),
-                    _buildDetailRow('Origem Pré-Venda', contract.preSalesOrigin),
-                    const SizedBox(height: 12),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.pop(context); // Volta para a página anterior
-                        },
-                        child: const Text('Voltar'),
+                      const SizedBox(height: 12),
+                      _buildDetailRow('ID do Contrato', contract.contractId),
+                      _buildDetailRow('CNPJ do Cliente', contract.clientCNPJ),
+                      _buildDetailRow('Nome do Cliente', contract.clientName),
+                      _buildDetailRow('Vendedor', contract.sellerId),
+                      _buildDetailRow('Tipo', contract.type),
+                      _buildDetailRow(
+                        'Valor',
+                        'R\$${contract.amount.toStringAsFixed(2)}',
                       ),
-                    ),
-                  ],
+                      _buildDetailRow('Status', contract.status),
+                      _buildDetailRow(
+                        'Data de Início',
+                        _formatDate(contract.startDate),
+                      ),
+                      _buildDetailRow(
+                        'Data de Término',
+                        _formatDate(contract.endDate),
+                      ),
+                      _buildDetailRow(
+                        'Data de Criação',
+                        _formatDate(contract.createdAt),
+                      ),
+                      _buildDetailRow('Método de Pagamento', contract.paymentMethod),
+                      _buildDetailRow(
+                        'Parcelas',
+                        '${contract.installments.toString()}x',
+                      ),
+                      _buildDetailRow('Tipo de Renovação', contract.renewalType),
+                      _buildDetailRow('Origem de Vendas', contract.salesOrigin),
+                      const SizedBox(height: 12),
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(context); // Volta para a página anterior
+                          },
+                          child: const Text('Voltar'),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -107,6 +108,7 @@ class ContractDetailsPage extends StatelessWidget {
             child: Text(
               value,
               overflow: TextOverflow.ellipsis, // Garante que o texto longo não estoure
+              style: const TextStyle(fontSize: 16),
             ),
           ),
         ],

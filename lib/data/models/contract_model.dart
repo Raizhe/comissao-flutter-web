@@ -3,10 +3,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ContractModel {
   final String contractId;
-  final String clientId;
+  final String clientCNPJ; // Substituindo clientId por clientCNPJ
   final String clientName;
   final String sellerId;
-  final String preSellerId;
   final String type;
   final double amount;
   final DateTime startDate;
@@ -17,14 +16,12 @@ class ContractModel {
   final int installments;
   final String renewalType;
   final String salesOrigin;
-  final String preSalesOrigin;
 
   ContractModel({
     required this.contractId,
-    required this.clientId,
+    required this.clientCNPJ,
     required this.clientName,
     required this.sellerId,
-    required this.preSellerId,
     required this.type,
     required this.amount,
     required this.startDate,
@@ -35,28 +32,25 @@ class ContractModel {
     required this.installments,
     required this.renewalType,
     required this.salesOrigin,
-    required this.preSalesOrigin,
   });
 
   // Método para converter de Firestore para ContractModel
   factory ContractModel.fromFirestore(Map<String, dynamic> data) {
     return ContractModel(
       contractId: data['contractId'] ?? '',
-      clientId: data['clientId'] ?? '',
+      clientCNPJ: data['clientCNPJ'] ?? '',
       clientName: data['clientName'] ?? '',
       sellerId: data['sellerId'] ?? '',
-      preSellerId: data['preSellerId'] ?? '',
       type: data['type'] ?? '',
-      amount: (data['amount'] as num).toDouble(), // Conversão garantida para double
+      amount: (data['amount'] as num).toDouble(),
       startDate: (data['startDate'] as Timestamp).toDate(),
       endDate: data['endDate'] != null ? (data['endDate'] as Timestamp).toDate() : null,
       status: data['status'] ?? '',
       createdAt: (data['createdAt'] as Timestamp).toDate(),
       paymentMethod: data['paymentMethod'] ?? '',
-      installments: (data['installments'] as num).toInt(), // Conversão garantida para int
+      installments: (data['installments'] as num).toInt(),
       renewalType: data['renewalType'] ?? '',
       salesOrigin: data['salesOrigin'] ?? '',
-      preSalesOrigin: data['preSalesOrigin'] ?? '',
     );
   }
 
@@ -64,10 +58,9 @@ class ContractModel {
   Map<String, dynamic> toFirestore() {
     return {
       'contractId': contractId,
-      'clientId': clientId,
+      'clientCNPJ': clientCNPJ,
       'clientName': clientName,
       'sellerId': sellerId,
-      'preSellerId': preSellerId,
       'type': type,
       'amount': amount,
       'startDate': startDate,
@@ -78,7 +71,6 @@ class ContractModel {
       'installments': installments,
       'renewalType': renewalType,
       'salesOrigin': salesOrigin,
-      'preSalesOrigin': preSalesOrigin,
     };
   }
 }

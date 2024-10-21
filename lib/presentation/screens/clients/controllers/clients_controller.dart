@@ -1,11 +1,9 @@
-// lib/presentation/screens/clients/controllers/clients_controller.dart
 import 'package:get/get.dart';
 import '../../../../data/models/clients_model.dart';
 import '../../../../data/repositories/client_repository.dart';
 
 class ClientsController extends GetxController {
   final ClientRepository _clientRepository = ClientRepository();
-
   var clients = <ClientModel>[].obs;
   var isLoading = false.obs;
 
@@ -15,6 +13,7 @@ class ClientsController extends GetxController {
     fetchClients(); // Busca clientes ao inicializar
   }
 
+  // Método para buscar clientes do banco
   Future<void> fetchClients() async {
     isLoading.value = true;
     try {
@@ -27,13 +26,17 @@ class ClientsController extends GetxController {
     }
   }
 
-  Future<void> deleteClient(String clientId) async {
+  // Método para adicionar cliente ao banco
+  Future<void> addClient(ClientModel client) async {
+    isLoading.value = true;
     try {
-      await _clientRepository.deleteClient(clientId);
-      clients.removeWhere((client) => client.clientId == clientId);
-      Get.snackbar('Sucesso', 'Cliente excluído com sucesso!');
+      await _clientRepository.addClient(client);
+      clients.add(client); // Adiciona à lista local
+      Get.snackbar('Sucesso', 'Cliente cadastrado com sucesso!');
     } catch (e) {
-      Get.snackbar('Erro', 'Erro ao excluir cliente: $e');
+      Get.snackbar('Erro', 'Erro ao cadastrar cliente: $e');
+    } finally {
+      isLoading.value = false;
     }
   }
 }

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 class SellerFormPage extends StatelessWidget {
-  SellerFormPage({Key? key}) : super(key: key);
+  SellerFormPage({super.key});
 
   final SellerController controller = Get.put(SellerController()); // Crie a instância do controller
 
