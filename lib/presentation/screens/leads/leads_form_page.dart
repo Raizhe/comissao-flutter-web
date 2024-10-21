@@ -10,6 +10,8 @@ import '../../../data/repositories/lead_repository.dart';
 import '../../../data/repositories/meet_repository.dart';
 
 class LeadFormPage extends StatefulWidget {
+  const LeadFormPage({Key? key}) : super(key: key);
+
   @override
   _LeadFormPageState createState() => _LeadFormPageState();
 }
@@ -18,7 +20,7 @@ class _LeadFormPageState extends State<LeadFormPage> {
   final _nomeOportunidadeController = TextEditingController();
   final _linkController = TextEditingController();
   String? _origem;
-  String? _selectedSeller; // Vendedor selecionado
+  String? _selectedSeller;
   DateTime? _dataReuniao;
   TimeOfDay? _horaReuniao;
 
@@ -122,115 +124,121 @@ class _LeadFormPageState extends State<LeadFormPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Cadastrar Lead')),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 32.0),
-        child: Center(
-          child: Card(
-            elevation: 10,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(32.0),
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Cadastro de Lead',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
+      body: Center(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: SizedBox(
+              width: 500, // Definição de largura do cartão
+              child: Card(
+                elevation: 8.0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20.0),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: _isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Text(
+                        'Cadastro de Lead',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 24),
-                    TextField(
-                      controller: _nomeOportunidadeController,
-                      decoration: const InputDecoration(
-                        labelText: 'Nome da Oportunidade',
-                        border: OutlineInputBorder(),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    FutureBuilder<List<SellerModel>>(
-                      future: _fetchSellers(),
-                      builder: (context, snapshot) {
-                        if (snapshot.connectionState == ConnectionState.waiting) {
-                          return const CircularProgressIndicator();
-                        } else if (snapshot.hasError) {
-                          return const Text('Erro ao carregar vendedores');
-                        } else {
-                          final sellers = snapshot.data!;
-                          return DropdownButtonFormField<String>(
-                            value: _selectedSeller,
+                      const SizedBox(height: 24),
+                      GridView.count(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        children: [
+                          TextField(
+                            controller: _nomeOportunidadeController,
                             decoration: const InputDecoration(
-                              labelText: 'Vendedor',
+                              labelText: 'Nome da Oportunidade',
                               border: OutlineInputBorder(),
                             ),
-                            items: sellers.map((seller) {
+                          ),
+                          FutureBuilder<List<SellerModel>>(
+                            future: _fetchSellers(),
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState == ConnectionState.waiting) {
+                                return const CircularProgressIndicator();
+                              } else if (snapshot.hasError) {
+                                return const Text('Erro ao carregar vendedores');
+                              } else {
+                                final sellers = snapshot.data!;
+                                return DropdownButtonFormField<String>(
+                                  value: _selectedSeller,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Vendedor',
+                                    border: OutlineInputBorder(),
+                                  ),
+                                  items: sellers.map((seller) {
+                                    return DropdownMenuItem(
+                                      value: seller.name,
+                                      child: Text(seller.name),
+                                    );
+                                  }).toList(),
+                                  onChanged: (value) {
+                                    setState(() => _selectedSeller = value);
+                                  },
+                                );
+                              }
+                            },
+                          ),
+                          TextField(
+                            controller: _linkController,
+                            decoration: const InputDecoration(
+                              labelText: 'Link da Oportunidade',
+                              border: OutlineInputBorder(),
+                            ),
+                          ),
+                          DropdownButtonFormField<String>(
+                            value: _origem,
+                            decoration: const InputDecoration(
+                              labelText: 'Origem',
+                              border: OutlineInputBorder(),
+                            ),
+                            items: ['Inbound', 'Outbound'].map((String value) {
                               return DropdownMenuItem(
-                                value: seller.name,
-                                child: Text(seller.name),
+                                value: value,
+                                child: Text(value),
                               );
                             }).toList(),
                             onChanged: (value) {
-                              setState(() => _selectedSeller = value);
+                              setState(() => _origem = value);
                             },
-                          );
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _linkController,
-                      decoration: const InputDecoration(
-                        labelText: 'Link da Oportunidade',
-                        border: OutlineInputBorder(),
+                          ),
+                        ],
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    DropdownButtonFormField<String>(
-                      value: _origem,
-                      decoration: const InputDecoration(
-                        labelText: 'Origem',
-                        border: OutlineInputBorder(),
+                      const SizedBox(height: 16),
+                      ListTile(
+                        leading: const Icon(Icons.calendar_today),
+                        title: Text(
+                          _dataReuniao == null
+                              ? 'Selecione a Data da Reunião'
+                              : 'Data: ${DateFormat('dd/MM/yyyy').format(_dataReuniao!)}',
+                        ),
+                        onTap: () => _selectDate(context),
                       ),
-                      items: ['Inbound', 'Outbound']
-                          .map((String value) => DropdownMenuItem(
-                        value: value,
-                        child: Text(value),
-                      ))
-                          .toList(),
-                      onChanged: (value) {
-                        setState(() => _origem = value);
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    ListTile(
-                      leading: const Icon(Icons.calendar_today),
-                      title: Text(
-                        _dataReuniao == null
-                            ? 'Selecione a Data da Reunião'
-                            : 'Data: ${DateFormat('dd/MM/yyyy').format(_dataReuniao!)}',
+                      ListTile(
+                        leading: const Icon(Icons.access_time),
+                        title: Text(
+                          _horaReuniao == null
+                              ? 'Selecione a Hora da Reunião'
+                              : 'Hora: ${_horaReuniao!.format(context)}',
+                        ),
+                        onTap: () => _selectTime(context),
                       ),
-                      onTap: () => _selectDate(context),
-                    ),
-                    const SizedBox(height: 16),
-                    ListTile(
-                      leading: const Icon(Icons.access_time),
-                      title: Text(
-                        _horaReuniao == null
-                            ? 'Selecione a Hora da Reunião'
-                            : 'Hora: ${_horaReuniao!.format(context)}',
-                      ),
-                      onTap: () => _selectTime(context),
-                    ),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
+                      const SizedBox(height: 24),
+                      ElevatedButton(
                         onPressed: _addLead,
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16.0),
@@ -240,8 +248,8 @@ class _LeadFormPageState extends State<LeadFormPage> {
                         ),
                         child: const Text('Cadastrar Lead'),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),

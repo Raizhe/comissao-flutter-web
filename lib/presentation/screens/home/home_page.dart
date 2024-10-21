@@ -48,7 +48,8 @@ class HomePage extends StatelessWidget {
 
     for (var doc in snapshot.docs) {
       String sellerId = doc['sellerId'];
-      sellerPerformance[sellerId] = (sellerPerformance[sellerId] ?? 0) + 1;
+      sellerPerformance[sellerId] =
+          (sellerPerformance[sellerId] ?? 0) + 1;
     }
     return sellerPerformance;
   }
@@ -78,12 +79,13 @@ class HomePage extends StatelessWidget {
             return SidebarWidget(role: role!);
           } else {
             return const Center(
-                child: Text('Erro ao carregar o papel do usuário.'));
+              child: Text('Erro ao carregar o papel do usuário.'),
+            );
           }
         },
       ),
       body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 40.0, vertical: 20.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
         child: FutureBuilder<Map<String, int>>(
           future: _fetchAllMetrics(),
           builder: (context, snapshot) {
@@ -93,72 +95,39 @@ class HomePage extends StatelessWidget {
               return const Center(child: Text('Erro ao carregar métricas.'));
             } else {
               final data = snapshot.data!;
-              return Column(
-                children: [
-                  const Text(
-                    'Dashboard Comparativo',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 30),
-                  Expanded(
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        return SingleChildScrollView(
-                          child: Column(
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  _buildFlexibleMetricCard(
-                                      'Vendas', data['sales']!, Colors.orange, constraints),
-                                  const SizedBox(width: 10),
-                                  _buildFlexibleMetricCard(
-                                      'Leads', data['leads']!, Colors.blue, constraints),
-                                  const SizedBox(width: 10),
-                                  _buildFlexibleMetricCard(
-                                      'Clientes', data['clients']!, Colors.purple, constraints),
-                                ],
-                              ),
-                              const SizedBox(height: 25),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  _buildFlexibleChart(_buildPieChart(data), constraints),
-                                  const SizedBox(width: 25),
-                                  _buildFlexibleMetricCard(
-                                      'Reuniões', data['meetings']!, Colors.green, constraints),
-                                  const SizedBox(width: 25),
-                                  _buildFlexibleChart(_buildSellerBarChart(data), constraints),
-                                ],
-                              ),
-                              const SizedBox(height: 30),
-                              const Text(
-                                'Desempenho dos Vendedores',
-                                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                              ),
-                              const SizedBox(height: 15),
-                              FutureBuilder<Map<String, int>>(
-                                future: _fetchSellerPerformance(),
-                                builder: (context, snapshot) {
-                                  if (snapshot.connectionState == ConnectionState.waiting) {
-                                    return const Center(
-                                        child: CircularProgressIndicator());
-                                  } else if (snapshot.hasError) {
-                                    return const Center(
-                                        child: Text('Erro ao carregar desempenho dos vendedores.'));
-                                  } else {
-                                    final sellerData = snapshot.data!;
-                                    return _buildSellerBarChart(sellerData);
-                                  }
-                                },
-                              ),
-                            ],
-                          ),
-                        );
+              return SingleChildScrollView(
+                child: Column(
+                  children: [
+                    const Text(
+                      'Dashboard Comparativo',
+                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 30),
+                    _buildResponsiveGrid(data),
+                    const SizedBox(height: 30),
+                    const Text(
+                      'Desempenho dos Vendedores',
+                      style: TextStyle(
+                          fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 15),
+                    FutureBuilder<Map<String, int>>(
+                      future: _fetchSellerPerformance(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const Center(
+                              child: CircularProgressIndicator());
+                        } else if (snapshot.hasError) {
+                          return const Center(
+                              child: Text('Erro ao carregar desempenho dos vendedores.'));
+                        } else {
+                          final sellerData = snapshot.data!;
+                          return _buildSellerBarChart(sellerData);
+                        }
                       },
                     ),
-                  ),
-                ],
+                  ],
+                ),
               );
             }
           },
@@ -167,19 +136,38 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildFlexibleMetricCard(
-      String title, int value, Color color, BoxConstraints constraints) {
-    double width = (constraints.maxWidth / 2) - 20;
-    double height = (constraints.maxWidth / 2) - 20;
+  Widget _buildResponsiveGrid(Map<String, int> data) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        bool isSmallScreen = constraints.maxWidth < 600;
+
+        return Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          alignment: WrapAlignment.center,
+          children: [
+            _buildFlexibleMetricCard('Vendas', data['sales']!, Colors.orange),
+            _buildFlexibleMetricCard('Leads', data['leads']!, Colors.blue),
+            _buildFlexibleMetricCard('Clientes', data['clients']!, Colors.purple),
+            _buildFlexibleChart(_buildPieChart(data)),
+            _buildFlexibleMetricCard('Reuniões', data['meetings']!, Colors.green),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildFlexibleMetricCard(String title, int value, Color color) {
     return SizedBox(
-      width: width.clamp(200, 400),
-      height: height.clamp(100, 200),
+      width: 150,
+      height: 150,
       child: Card(
         elevation: 3,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),
+          padding: const EdgeInsets.all(8.0),
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(title, style: const TextStyle(fontSize: 14)),
               const SizedBox(height: 4),
@@ -198,14 +186,14 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildFlexibleChart(Widget chart, BoxConstraints constraints) {
-    double size = (constraints.maxWidth / 2) - 20;
+  Widget _buildFlexibleChart(Widget chart) {
     return SizedBox(
-      width: size.clamp(300, 400),
-      height: size.clamp(300, 400),
+      width: 300,
+      height: 300,
       child: Card(
         elevation: 5,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16)),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: chart,
@@ -222,35 +210,23 @@ class HomePage extends StatelessWidget {
       {'title': 'Reuniões', 'value': data['meetings']!.toDouble(), 'color': Colors.green},
     ];
 
-    List<PieChartSectionData> sections = metrics.map((metric) {
-      return PieChartSectionData(
-        value: (metric['value'] as num).toDouble(),
-        color: metric['color'] as Color,
-        title: metric['title'] as String,
-      );
-    }).toList();
-
-    return PieChart(PieChartData(sections: sections));
+    return PieChart(
+      PieChartData(
+        sections: metrics.map((metric) {
+          return PieChartSectionData(
+            value: metric['value'] as double,
+            color: metric['color'] as Color,
+            title: metric['title'] as String,
+          );
+        }).toList(),
+      ),
+    );
   }
 
   Widget _buildSellerBarChart(Map<String, int> sellerData) {
-    List<BarChartGroupData> barGroups = [];
-    int index = 0;
-
-    sellerData.forEach((sellerId, count) {
-      barGroups.add(
-        BarChartGroupData(
-          x: index++,
-          barRods: [
-            BarChartRodData(toY: count.toDouble(), color: Colors.blueAccent),
-          ],
-        ),
-      );
-    });
-
     return SizedBox(
-      width: 400, // Defina um tamanho explícito
-      height: 300, // Defina um tamanho explícito
+      width: 400,
+      height: 300,
       child: Card(
         elevation: 5,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -258,14 +234,24 @@ class HomePage extends StatelessWidget {
           padding: const EdgeInsets.all(16.0),
           child: BarChart(
             BarChartData(
-              alignment: BarChartAlignment.center,
-              maxY: sellerData.values.reduce((a, b) => a > b ? a : b).toDouble() + 1,
-              barGroups: barGroups,
+              alignment: BarChartAlignment.spaceAround,
+              maxY: sellerData.values.reduce((a, b) => a > b ? a : b).toDouble() + 5,
+              barGroups: sellerData.entries.map((entry) {
+                return BarChartGroupData(
+                  x: sellerData.keys.toList().indexOf(entry.key),
+                  barRods: [
+                    BarChartRodData(
+                      toY: entry.value.toDouble(),
+                      color: Colors.blueAccent,
+                      width: 15,
+                    ),
+                  ],
+                );
+              }).toList(),
             ),
           ),
         ),
       ),
     );
   }
-
 }

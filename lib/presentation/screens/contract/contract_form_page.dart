@@ -1,4 +1,3 @@
-// lib/presentation/screens/contract/contract_form_page.dart
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:uuid/uuid.dart';
@@ -36,6 +35,7 @@ class _ContractFormPageState extends State<ContractFormPage> {
     _fetchSellers();
     _fetchClientCNPJs();
   }
+
   Future<void> _fetchSellers() async {
     QuerySnapshot<Map<String, dynamic>> snapshot =
     await FirebaseFirestore.instance.collection('sellers').get();
@@ -44,8 +44,8 @@ class _ContractFormPageState extends State<ContractFormPage> {
       _sellers = snapshot.docs.map((doc) {
         final data = doc.data();
         return {
-          'uid': doc.id, // UID do vendedor
-          'name': data['name']?.toString() ?? 'Sem Nome', // Nome como String
+          'uid': doc.id,
+          'name': data['name']?.toString() ?? 'Sem Nome',
         };
       }).toList();
     });
@@ -59,14 +59,12 @@ class _ContractFormPageState extends State<ContractFormPage> {
       _clients = snapshot.docs.map((doc) {
         final data = doc.data();
         return {
-          'cnpj': data['cnpj']?.toString() ?? 'Sem CNPJ', // CNPJ como String
-          'name': data['name']?.toString() ?? 'Sem Nome', // Nome como String
+          'cnpj': data['cnpj']?.toString() ?? 'Sem CNPJ',
+          'name': data['name']?.toString() ?? 'Sem Nome',
         };
       }).toList();
     });
   }
-
-
 
   Future<void> _addContract() async {
     if (_selectedSellerId == null || _selectedClientCNPJ == null) {
@@ -128,83 +126,129 @@ class _ContractFormPageState extends State<ContractFormPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFEFEFEF),
       appBar: AppBar(
         title: const Text('Cadastrar Contrato'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
+      body: Center(
         child: SingleChildScrollView(
-          child: Column(
-            children: [
-              DropdownButtonFormField<String>(
-                value: _selectedClientCNPJ,
-                hint: const Text('Selecione o CNPJ do Cliente'),
-                items: _clients.map((client) {
-                  return DropdownMenuItem<String>(
-                    value: client['cnpj'],
-                    child: Text('${client['cnpj']} - ${client['name']}'),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedClientCNPJ = value;
-                    _selectedClientName = _clients
-                        .firstWhere((client) => client['cnpj'] == value)['name'];
-                  });
-                },
-                decoration: const InputDecoration(labelText: 'CNPJ do Cliente'),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: SizedBox(
+              width: 600, // Card mais estreito
+              child: Card(
+                elevation: 8.0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20.0),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Text(
+                        'Cadastro de Contrato',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      _buildFormGrid(),
+                      const SizedBox(height: 24),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16.0),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12.0),
+                          ),
+                        ),
+                        onPressed: _addContract,
+                        child: const Text(
+                          'Cadastrar',
+                          style: TextStyle(fontSize: 18),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
-              const SizedBox(height: 16),
-              DropdownButtonFormField<String>(
-                value: _selectedSellerId,
-                hint: const Text('Selecione o Vendedor'),
-                items: _sellers.map((seller) {
-                  return DropdownMenuItem<String>(
-                    value: seller['uid'],
-                    child: Text(seller['name']!),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _selectedSellerId = value;
-                  });
-                },
-                decoration: const InputDecoration(labelText: 'Vendedor'),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _typeController,
-                decoration: const InputDecoration(labelText: 'Tipo de Contrato'),
-              ),
-              TextField(
-                controller: _amountController,
-                decoration: const InputDecoration(labelText: 'Valor'),
-                keyboardType: TextInputType.number,
-              ),
-              TextField(
-                controller: _paymentMethodController,
-                decoration: const InputDecoration(labelText: 'Forma de Pagamento'),
-              ),
-              TextField(
-                controller: _installmentsController,
-                decoration: const InputDecoration(labelText: 'Parcelas'),
-                keyboardType: TextInputType.number,
-              ),
-              TextField(
-                controller: _renewalTypeController,
-                decoration: const InputDecoration(labelText: 'Tipo de Renovação'),
-              ),
-              TextField(
-                controller: _salesOriginController,
-                decoration: const InputDecoration(labelText: 'Origem da Venda'),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _addContract,
-                child: const Text('Cadastrar Contrato'),
-              ),
-            ],
+            ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFormGrid() {
+    return GridView(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2, // Dois campos por linha
+        childAspectRatio: 3,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+      ),
+      children: [
+        _buildDropdownField('CNPJ do Cliente', _selectedClientCNPJ, _clients,
+                (value) {
+              setState(() {
+                _selectedClientCNPJ = value;
+                _selectedClientName = _clients
+                    .firstWhere((client) => client['cnpj'] == value)['clientName'];
+              });
+            }),
+        _buildDropdownField('Vendedor', _selectedSellerId, _sellers, (value) {
+          setState(() {
+            _selectedSellerId = value;
+          });
+        }),
+        _buildTextField(_typeController, 'Tipo de Contrato'),
+        _buildTextField(_amountController, 'Valor', TextInputType.number),
+        _buildTextField(_paymentMethodController, 'Forma de Pagamento'),
+        _buildTextField(_installmentsController, 'Parcelas', TextInputType.number),
+        _buildTextField(_renewalTypeController, 'Tipo de Renovação'),
+        _buildTextField(_salesOriginController, 'Origem da Venda'),
+      ],
+    );
+  }
+
+  Widget _buildDropdownField(
+      String label,
+      String? value,
+      List<Map<String, String>> items,
+      ValueChanged<String?> onChanged,
+      ) {
+    return DropdownButtonFormField<String>(
+      value: value,
+      hint: Text(label),
+      items: items.map((item) {
+        return DropdownMenuItem<String>(
+          value: item['uid'] ?? item['cnpj'],
+          child: Text('${item['cnpj'] ?? item['clientName']} - ${item['name']}'),
+        );
+      }).toList(),
+      onChanged: onChanged,
+      decoration: InputDecoration(
+        labelText: label,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12.0),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField(TextEditingController controller, String label,
+      [TextInputType? type]) {
+    return TextField(
+      controller: controller,
+      keyboardType: type,
+      decoration: InputDecoration(
+        labelText: label,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12.0),
         ),
       ),
     );
