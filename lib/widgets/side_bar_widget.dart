@@ -49,25 +49,25 @@ class SidebarWidget extends StatelessWidget {
                   text: 'Contratos',
                   route: '/contract_form',
                 ),
+                // _buildDrawerItem(
+                //   icon: Icons.monetization_on,
+                //   text: 'Comissões',
+                //   route: '/commission_form',
+                // ),
                 _buildDrawerItem(
-                  icon: Icons.monetization_on,
-                  text: 'Comissões',
-                  route: '/commission_form',
-                ),
-                _buildDrawerItem(
-                  icon: Icons.business,
+                  icon: Icons.person_outline,
                   text: 'Clientes',
                   route: '/client_form',
                 ),
                 _buildDrawerItem(
-                  icon: Icons.business,
+                  icon: Icons.show_chart,
                   text: 'Vendedores',
                   route: '/seller_form',
                 ),
               ],
               if (role == 'seller' || role == 'pre_seller') ...[
                 _buildDrawerItem(
-                  icon: Icons.business,
+                  icon: Icons.person_outline,
                   text: 'Clientes',
                   route: '/client_form',
                 ),

@@ -1,12 +1,64 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../data/models/clients_model.dart';
-import 'controllers/clients_controller.dart';
+import '../../../widgets/navbar_widget.dart';
 
-class ClientsPage extends StatelessWidget {
-  final ClientsController _clientsController = Get.put(ClientsController());
+class ClientsPage extends StatefulWidget {
+  const ClientsPage({Key? key}) : super(key: key);
 
-  ClientsPage({Key? key}) : super(key: key);
+  @override
+  _ClientsPageState createState() => _ClientsPageState();
+}
+
+class _ClientsPageState extends State<ClientsPage> {
+  List<ClientModel> _clients = [];
+  List<ClientModel> _filteredClients = [];
+  bool _isAscending = true; // Controla a ordem de ordenação
+
+  // Busca os clientes do Firestore
+  Stream<List<ClientModel>> _fetchClients() {
+    return FirebaseFirestore.instance.collection('clients').snapshots().map(
+          (snapshot) => snapshot.docs.map((doc) {
+        return ClientModel.fromJson(doc.data() as Map<String, dynamic>);
+      }).toList(),
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchClients().listen((clients) {
+      setState(() {
+        _clients = clients;
+        _filteredClients = clients;
+      });
+    });
+  }
+
+  // Filtra clientes com base na pesquisa
+  void _searchClients(String query) {
+    setState(() {
+      _filteredClients = _clients.where((client) {
+        return client.clientName.toLowerCase().contains(query.toLowerCase()) ||
+            client.companyName.toLowerCase().contains(query.toLowerCase()) ||
+            (client.phone?.toLowerCase() ?? '').contains(query.toLowerCase()) ||
+            client.situation.toLowerCase().contains(query.toLowerCase());
+      }).toList();
+    });
+  }
+
+  // Ordena os clientes de forma crescente ou decrescente
+  void _sortClients() {
+    setState(() {
+      _isAscending = !_isAscending;
+      _filteredClients.sort((a, b) {
+        return _isAscending
+            ? a.clientName.compareTo(b.clientName)
+            : b.clientName.compareTo(a.clientName);
+      });
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -16,94 +68,121 @@ class ClientsPage extends StatelessWidget {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Obx(() {
-          if (_clientsController.isLoading.value) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (_clientsController.clients.isEmpty) {
-            return const Center(
-              child: Text(
-                'Nenhum cliente encontrado.',
-                style: TextStyle(fontSize: 18),
-              ),
-            );
-          }
-
-          // Exibe os clientes em uma lista centralizada e compacta
-          return Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 600), // Limita a largura
-              child: ListView.builder(
-                itemCount: _clientsController.clients.length,
-                itemBuilder: (context, index) {
-                  final client = _clientsController.clients[index];
-                  return _buildClientCard(client);
-                },
-              ),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 800),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Barra de pesquisa no topo
+                NavbarWidget(
+                  hintText: 'Buscar por nome, empresa, telefone ou situação',
+                  onSearch: _searchClients,
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: _buildClientTable(),
+                ),
+              ],
             ),
-          );
-        }),
-      ),
-    );
-  }
-
-  // Widget para construir um card de cliente
-  Widget _buildClientCard(ClientModel client) {
-    return InkWell(
-      onTap: () {
-        Get.toNamed('/client_details', arguments: client); // Navega para os detalhes
-      },
-      child: Card(
-        elevation: 4,
-        margin: const EdgeInsets.symmetric(vertical: 8.0), // Espaço entre os cards
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12.0), // Bordas arredondadas
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                client.clientName,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Empresa: ${client.companyName}',
-                style: const TextStyle(fontSize: 14),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Telefone: ${client.phone ?? "Não disponível"}',
-                style: const TextStyle(fontSize: 14),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                'Situação: ${client.situation}',
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Colors.blueAccent,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Align(
-                alignment: Alignment.centerRight,
-                child: IconButton(
-                  icon: const Icon(Icons.settings, color: Colors.grey),
-                  onPressed: () {
-                    Get.toNamed('/client_form', arguments: client); // Editar cliente
-                  },
-                ),
-              ),
-            ],
           ),
         ),
       ),
     );
   }
+
+  // Cria uma tabela para exibir os clientes
+  Widget _buildClientTable() {
+    if (_filteredClients.isEmpty) {
+      return const Center(
+        child: Text('Nenhum cliente encontrado.'),
+      );
+    }
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: DataTable(
+        columnSpacing: 60,
+        columns: [
+          const DataColumn(label: Text('Nome')),
+          const DataColumn(label: Text('Empresa')),
+          const DataColumn(label: Text('Telefone')),
+          const DataColumn(label: Text('Situação')),
+          DataColumn(
+            label: Row(
+              children: [
+                const Text('Ações'),
+                const SizedBox(width: 8),
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.sort), // Ícone de filtro
+                  onSelected: (value) {
+                    if (value == 'A-Z') {
+                      _sortClientsAscending();
+                    } else if (value == 'Z-A') {
+                      _sortClientsDescending();
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'A-Z',
+                      child: Text('Classificar de A-Z'),
+                    ),
+                    const PopupMenuItem(
+                      value: 'Z-A',
+                      child: Text('Classificar de Z-A'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+
+        ],
+        rows: _filteredClients.map((client) {
+          return DataRow(
+            cells: [
+              DataCell(
+                GestureDetector(
+                  onTap: () {
+                    Get.toNamed('/client_details', arguments: client);
+                  },
+                  child: Text(
+                    client.clientName,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.normal,
+                    ),
+                  ),
+                ),
+              ),
+              DataCell(Text(client.companyName)),
+              DataCell(Text(client.phone ?? 'Não disponível')),
+              DataCell(Text(client.situation)),
+              DataCell(
+                IconButton(
+                  icon: const Icon(Icons.settings),
+                  onPressed: () {
+                    Get.toNamed('/client_form', arguments: client);
+                  },
+                ),
+              ),
+            ],
+          );
+        }).toList(),
+      ),
+    );
+  }
+  void _sortClientsAscending() {
+    setState(() {
+      _filteredClients.sort((a, b) => a.clientName.compareTo(b.clientName));
+    });
+  }
+
+  void _sortClientsDescending() {
+    setState(() {
+      _filteredClients.sort((a, b) => b.clientName.compareTo(a.clientName));
+    });
+  }
+
 }

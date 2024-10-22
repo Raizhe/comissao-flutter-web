@@ -126,7 +126,7 @@ class HomePage extends StatelessWidget {
                   child: Column(
                     children: [
                       const Text(
-                        'Dashboard Comparativo',
+                        'Drop Lead Dashboard',
                         style: TextStyle(
                             fontSize: 24, fontWeight: FontWeight.bold),
                       ),

@@ -2,11 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../data/models/lead_model.dart';
+import '../../../widgets/navbar_widget.dart';
 
-class LeadPage extends StatelessWidget {
+class LeadPage extends StatefulWidget {
   const LeadPage({Key? key}) : super(key: key);
 
-  // Método para buscar os leads do Firestore
+  @override
+  _LeadPageState createState() => _LeadPageState();
+}
+
+class _LeadPageState extends State<LeadPage> {
+  List<LeadModel> _leads = [];
+  List<LeadModel> _filteredLeads = [];
+
   Stream<List<LeadModel>> _fetchLeads() {
     return FirebaseFirestore.instance.collection('leads').snapshots().map(
           (snapshot) => snapshot.docs.map((doc) {
@@ -16,66 +24,96 @@ class LeadPage extends StatelessWidget {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _fetchLeads().listen((leads) {
+      setState(() {
+        _leads = leads;
+        _filteredLeads = leads;
+      });
+    });
+  }
+
+  void _searchLeads(String query) {
+    setState(() {
+      _filteredLeads = _leads.where((lead) {
+        return lead.name.toLowerCase().contains(query.toLowerCase()) ||
+            lead.vendedor.toLowerCase().contains(query.toLowerCase()) ||
+            lead.sdr.toLowerCase().contains(query.toLowerCase()) ||
+            lead.origem.toLowerCase().contains(query.toLowerCase());
+      }).toList();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Leads'),
       ),
-      body: StreamBuilder<List<LeadModel>>(
-        stream: _fetchLeads(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return const Center(child: Text('Erro ao carregar os leads.'));
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('Nenhum lead encontrado.'));
-          } else {
-            final leads = snapshot.data!;
-            return Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 600),
-                child: ListView.builder(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  itemCount: leads.length,
-                  itemBuilder: (context, index) {
-                    final lead = leads[index];
-                    return Card(
-                      elevation: 4,
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: ListTile(
-                        title: Text(lead.name),
-                        subtitle: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('SDR: ${lead.sdr}'),
-                            Text('Vendedor: ${lead.vendedor}'),
-                            Text('Origem: ${lead.origem}'),
-                          ],
-                        ),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.link),
-                          onPressed: () {
-                            _openLink(lead.link);
-                          },
-                        ),
-                      ),
-                    );
-                  },
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 800),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Navbar com alinhamento igual à tabela
+                NavbarWidget(
+                  hintText: 'Buscar por nome, vendedor, SDR, ou origem',
+                  onSearch: _searchLeads,
                 ),
-              ),
-            );
-          }
-        },
+                const SizedBox(height: 16),
+                Expanded(
+                  child: _buildLeadTable(),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
 
-  // Método para abrir o link no navegador
+  Widget _buildLeadTable() {
+    if (_filteredLeads.isEmpty) {
+      return const Center(
+        child: Text('Nenhum lead encontrado.'),
+      );
+    }
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: DataTable(
+        columnSpacing: 60,
+        columns: const [
+          DataColumn(label: Text('Nome')),
+          DataColumn(label: Text('SDR')),
+          DataColumn(label: Text('Vendedor')),
+          DataColumn(label: Text('Origem')),
+          DataColumn(label: Text('Link')),
+        ],
+        rows: _filteredLeads.map((lead) {
+          return DataRow(
+            cells: [
+              DataCell(Text(lead.name)),
+              DataCell(Text(lead.sdr)),
+              DataCell(Text(lead.vendedor)),
+              DataCell(Text(lead.origem)),
+              DataCell(
+                IconButton(
+                  icon: const Icon(Icons.link),
+                  onPressed: () => _openLink(lead.link),
+                ),
+              ),
+            ],
+          );
+        }).toList(),
+      ),
+    );
+  }
+
   void _openLink(String url) async {
     final Uri uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {

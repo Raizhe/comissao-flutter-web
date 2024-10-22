@@ -40,16 +40,16 @@ class MyApp extends StatelessWidget {
       // Define a rota inicial como '/'
       getPages: [
         GetPage(name: '/', page: () => const AuthenticationWrapper()),
-        GetPage(name: '/login', page: () => LoginPage()),
+        GetPage(name: '/login', page: () => const LoginPage()),
         GetPage(name: '/home', page: () => HomePage()),
         GetPage(name: '/client_form', page: () => ClientFormPage()),
         GetPage(
             name: '/pre_seller_form', page: () => const PreSellerFormPage()),
         GetPage(name: '/seller_form', page: () => SellerFormPage()),
         GetPage(name: '/user_form', page: () => UserFormPage()),
-        GetPage(name: '/contract_form', page: () => ContractFormPage()),
+        GetPage(name: '/contract_form', page: () => const ContractFormPage()),
         GetPage(name: '/meet_form', page: () => MeetFormPage()),
-        GetPage(name: '/lead_form', page: () => LeadFormPage()),
+        GetPage(name: '/lead_form', page: () => const LeadFormPage()),
         GetPage(name: '/leads_page', page: () => const LeadPage()),
         GetPage(name: '/contracts_page', page: () => ContractsPage()),
         GetPage(name: '/clients_page', page: () => ClientsPage()),
