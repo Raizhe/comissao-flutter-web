@@ -15,6 +15,8 @@ class ContractFormPage extends StatefulWidget {
 class _ContractFormPageState extends State<ContractFormPage> {
   final ContractController _contractController = Get.put(ContractController());
 
+  final _formKey = GlobalKey<FormState>();
+
   final _typeController = TextEditingController();
   final _amountController = TextEditingController();
   final _paymentMethodController = TextEditingController();
@@ -67,14 +69,7 @@ class _ContractFormPageState extends State<ContractFormPage> {
   }
 
   Future<void> _addContract() async {
-    if (_selectedSellerId == null || _selectedClientCNPJ == null) {
-      Get.snackbar(
-        'Erro',
-        'Por favor, selecione um vendedor e um cliente.',
-        backgroundColor: Colors.red,
-        colorText: Colors.white,
-        snackPosition: SnackPosition.BOTTOM,
-      );
+    if (!_formKey.currentState!.validate()) {
       return;
     }
 
@@ -135,7 +130,7 @@ class _ContractFormPageState extends State<ContractFormPage> {
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: SizedBox(
-              width: 600, // Card mais estreito
+              width: 600,
               child: Card(
                 elevation: 8.0,
                 shape: RoundedRectangleBorder(
@@ -143,34 +138,37 @@ class _ContractFormPageState extends State<ContractFormPage> {
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      const Text(
-                        'Cadastro de Contrato',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      _buildFormGrid(),
-                      const SizedBox(height: 24),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16.0),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12.0),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Text(
+                          'Cadastro de Contrato',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                        onPressed: _addContract,
-                        child: const Text(
-                          'Cadastrar',
-                          style: TextStyle(fontSize: 18),
+                        const SizedBox(height: 24),
+                        _buildFormGrid(),
+                        const SizedBox(height: 24),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16.0),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12.0),
+                            ),
+                          ),
+                          onPressed: _addContract,
+                          child: const Text(
+                            'Cadastrar',
+                            style: TextStyle(fontSize: 18),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -186,20 +184,24 @@ class _ContractFormPageState extends State<ContractFormPage> {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2, // Dois campos por linha
+        crossAxisCount: 2,
         childAspectRatio: 3,
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
       ),
       children: [
-        _buildDropdownField('CNPJ do Cliente', _selectedClientCNPJ, _clients,
-                (value) {
-              setState(() {
-                _selectedClientCNPJ = value;
-                _selectedClientName = _clients
-                    .firstWhere((client) => client['cnpj'] == value)['clientName'];
-              });
-            }),
+        _buildDropdownField(
+          'CNPJ do Cliente',
+          _selectedClientCNPJ,
+          _clients,
+              (value) {
+            setState(() {
+              _selectedClientCNPJ = value;
+              _selectedClientName =
+              _clients.firstWhere((client) => client['cnpj'] == value)['name'];
+            });
+          },
+        ),
         _buildDropdownField('Vendedor', _selectedSellerId, _sellers, (value) {
           setState(() {
             _selectedSellerId = value;
@@ -227,7 +229,7 @@ class _ContractFormPageState extends State<ContractFormPage> {
       items: items.map((item) {
         return DropdownMenuItem<String>(
           value: item['uid'] ?? item['cnpj'],
-          child: Text('${item['cnpj'] ?? item['clientName']} - ${item['name']}'),
+          child: Text('${item['cnpj'] ?? ''} - ${item['name']}'),
         );
       }).toList(),
       onChanged: onChanged,
@@ -237,12 +239,14 @@ class _ContractFormPageState extends State<ContractFormPage> {
           borderRadius: BorderRadius.circular(12.0),
         ),
       ),
+      validator: (value) =>
+      value == null || value.isEmpty ? 'Campo obrigatório' : null,
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String label,
-      [TextInputType? type]) {
-    return TextField(
+  Widget _buildTextField(
+      TextEditingController controller, String label, [TextInputType? type]) {
+    return TextFormField(
       controller: controller,
       keyboardType: type,
       decoration: InputDecoration(
@@ -251,6 +255,8 @@ class _ContractFormPageState extends State<ContractFormPage> {
           borderRadius: BorderRadius.circular(12.0),
         ),
       ),
+      validator: (value) =>
+      value == null || value.isEmpty ? 'Campo obrigatório' : null,
     );
   }
 }
