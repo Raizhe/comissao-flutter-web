@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:uuid/uuid.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_masked_text2/flutter_masked_text2.dart';
+import 'package:uuid/uuid.dart';
+
 import '../../../data/models/contract_model.dart';
-import '../contract/controllers/contracts_controller.dart';
+import 'controllers/contracts_controller.dart';
 
 class ContractFormPage extends StatefulWidget {
   const ContractFormPage({Key? key}) : super(key: key);
@@ -14,34 +15,34 @@ class ContractFormPage extends StatefulWidget {
 }
 
 class _ContractFormPageState extends State<ContractFormPage> {
-  final ContractController _contractController = Get.put(ContractController());
-
   final _formKey = GlobalKey<FormState>();
 
+  final _cnpjController = MaskedTextController(mask: '00.000.000/0000-00');
+  final _cpfController = MaskedTextController(mask: '000.000.000-00');
   final _typeController = TextEditingController();
+
+  // Ajuste no controlador de valor para evitar erro de range
   final _amountController = MoneyMaskedTextController(
+    initialValue: 0.0,  // Valor inicial válido
     decimalSeparator: ',',
     thousandSeparator: '.',
     leftSymbol: 'R\$ ',
   );
-  final _paymentMethodController = TextEditingController();
   final _installmentsController = TextEditingController();
+  final _paymentMethodController = TextEditingController();
   final _renewalTypeController = TextEditingController();
-  final _salesOriginController = TextEditingController();
-
-  final _cnpjController = MaskedTextController(mask: '00.000.000/0000-00');
-  final _cpfController = MaskedTextController(mask: '000.000.000-00');
-
+  String? _selectedSalesOrigin = 'Inbound';
   String? _selectedSellerId;
-  String? _selectedClientName;
+
+  bool _showClientSuggestions = false;
   List<Map<String, dynamic>> _clients = [];
   List<Map<String, dynamic>> _sellers = [];
-  bool _showClientSuggestions = false; // Controle da lista de sugestões
 
   @override
   void initState() {
     super.initState();
     _fetchSellers();
+    Get.put(ContractController());
   }
 
   Future<void> _fetchSellers() async {
@@ -49,7 +50,10 @@ class _ContractFormPageState extends State<ContractFormPage> {
     await FirebaseFirestore.instance.collection('sellers').get();
 
     setState(() {
-      _sellers = snapshot.docs.map((doc) => doc.data()).toList();
+      _sellers = snapshot.docs.map((doc) {
+        final data = doc.data();
+        return {'uid': doc.id, 'name': data['name'] ?? 'Sem Nome'};
+      }).toList();
     });
   }
 
@@ -57,106 +61,14 @@ class _ContractFormPageState extends State<ContractFormPage> {
     QuerySnapshot<Map<String, dynamic>> snapshot = await FirebaseFirestore
         .instance
         .collection('clients')
-        .where('cnpj', isGreaterThanOrEqualTo: query)
-        .limit(5)
+        .where('cnpj', isEqualTo: query)
+        .limit(1)
         .get();
 
     setState(() {
       _clients = snapshot.docs.map((doc) => doc.data()).toList();
       _showClientSuggestions = _clients.isNotEmpty;
     });
-  }
-
-  Future<void> _addContract() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    try {
-      String contractId = const Uuid().v4();
-
-      ContractModel newContract = ContractModel(
-        contractId: contractId,
-        clientCNPJ: _cnpjController.text,
-        clientName: _selectedClientName!,
-        sellerId: _selectedSellerId!,
-        type: _typeController.text.trim(),
-        amount: double.parse(
-            _amountController.text.replaceAll(RegExp(r'[^\d.]'), '')),
-        startDate: DateTime.now(),
-        status: 'ativo',
-        createdAt: DateTime.now(),
-        paymentMethod: _paymentMethodController.text.trim(),
-        installments: int.parse(_installmentsController.text.trim()),
-        renewalType: _renewalTypeController.text.trim(),
-        salesOrigin: _salesOriginController.text.trim(),
-      );
-
-      await _contractController.addContract(newContract);
-
-      Get.snackbar('Sucesso', 'Contrato cadastrado com sucesso!',
-          backgroundColor: Colors.green,
-          colorText: Colors.white,
-          snackPosition: SnackPosition.BOTTOM,
-          duration: const Duration(seconds: 3));
-
-      Get.offAllNamed('/home');
-    } catch (e) {
-      Get.snackbar('Erro', 'Erro ao cadastrar contrato: $e',
-          backgroundColor: Colors.red,
-          colorText: Colors.white,
-          snackPosition: SnackPosition.BOTTOM);
-    }
-  }
-
-  Widget _buildSearchableCnpjField() {
-    return Column(
-      children: [
-        TextFormField(
-          controller: _cnpjController,
-          decoration: InputDecoration(
-            labelText: 'CNPJ',
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12.0),
-            ),
-          ),
-          onChanged: (value) {
-            if (value.length >= 14) {
-              _searchClient(value);
-            } else {
-              setState(() {
-                _showClientSuggestions = false;
-              });
-            }
-          },
-          validator: (value) =>
-          value == null || value.isEmpty ? 'Campo obrigatório' : null,
-        ),
-        const SizedBox(height: 10),
-        _showClientSuggestions
-            ? ListView.builder(
-          shrinkWrap: true,
-          itemCount: _clients.length,
-          itemBuilder: (context, index) {
-            final client = _clients[index];
-            final clientName =
-                client['name'] ?? 'Nome não disponível';
-            final clientCnpj = client['cnpj'] ?? '';
-
-            return ListTile(
-              title: Text('$clientName - $clientCnpj'),
-              onTap: () {
-                setState(() {
-                  _cnpjController.text = clientCnpj;
-                  _cpfController.text = client['cpf'] ?? '';
-                  _selectedClientName = clientName;
-                  _showClientSuggestions = false;
-                });
-              },
-            );
-          },
-        )
-            : const SizedBox.shrink(),
-      ],
-    );
   }
 
   @override
@@ -181,22 +93,56 @@ class _ContractFormPageState extends State<ContractFormPage> {
                   padding: const EdgeInsets.all(24.0),
                   child: Form(
                     key: _formKey,
-                    child: Wrap(
-                      spacing: 16.0,
-                      runSpacing: 16.0,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         _buildSearchableCnpjField(),
+                        const SizedBox(height: 16),
+                        _buildSellerDropdown(),
+                        const SizedBox(height: 16),
+                        _buildSalesOriginDropdown(),
+                        const SizedBox(height: 16),
                         _buildTextField(_typeController, 'Tipo de Contrato'),
+                        const SizedBox(height: 16),
                         _buildCurrencyField(),
+                        const SizedBox(height: 16),
                         _buildTextField(_installmentsController, 'Parcelas',
                             TextInputType.number),
+                        const SizedBox(height: 16),
                         _buildPaymentMethodDropdown(),
-                        _buildTextField(
-                            _renewalTypeController, 'Tipo de Renovação'),
-                        _buildTextField(
-                            _salesOriginController, 'Origem da Venda'),
+                        const SizedBox(height: 16),
+                        _buildTextField(_renewalTypeController, 'Tipo de Renovação'),
+                        const SizedBox(height: 24),
                         ElevatedButton(
-                          onPressed: _addContract,
+                          onPressed: () async {
+                            if (_formKey.currentState!.validate()) {
+                              final newContract = ContractModel(
+                                contractId: const Uuid().v4(),
+                                clientCNPJ: _cnpjController.text.trim(),
+                                clientName: 'Nome do Cliente',
+                                sellerId: _selectedSellerId!,
+                                type: _typeController.text.trim(),
+                                amount: _amountController.numberValue, // Correção aqui
+                                startDate: DateTime.now(),
+                                endDate: null,
+                                status: 'ativo',
+                                createdAt: DateTime.now(),
+                                paymentMethod: _paymentMethodController.text.trim(),
+                                installments: int.parse(
+                                    _installmentsController.text.trim()),
+                                renewalType: _renewalTypeController.text.trim(),
+                                salesOrigin: _selectedSalesOrigin ?? 'Inbound',
+                              );
+
+                              try {
+                                await Get.find<ContractController>().addContract(newContract);
+                                Get.snackbar('Sucesso', 'Contrato cadastrado com sucesso!');
+                                Get.offAllNamed('/home');
+                              } catch (e) {
+                                Get.snackbar('Erro', 'Erro ao cadastrar contrato: $e');
+                              }
+                            }
+                          },
                           child: const Text('Cadastrar'),
                         ),
                       ],
@@ -211,6 +157,122 @@ class _ContractFormPageState extends State<ContractFormPage> {
     );
   }
 
+  Widget _buildSearchableCnpjField() {
+    return Column(
+      children: [
+        TextFormField(
+          controller: _cnpjController,
+          decoration: const InputDecoration(
+            labelText: 'CNPJ',
+            border: OutlineInputBorder(),
+          ),
+          onChanged: (value) {
+            if (value.replaceAll(RegExp(r'\D'), '').length == 14) {
+              _searchClient(value);
+            } else {
+              setState(() {
+                _showClientSuggestions = false;
+              });
+            }
+          },
+          validator: (value) =>
+          value == null || value.isEmpty ? 'Campo obrigatório' : null,
+        ),
+        const SizedBox(height: 10),
+        _showClientSuggestions
+            ? ListView.builder(
+          shrinkWrap: true,
+          itemCount: _clients.length,
+          itemBuilder: (context, index) {
+            final client = _clients[index];
+            final clientCnpj = client['cnpj'] ?? '';
+
+            return ListTile(
+              title: Text(clientCnpj),
+              onTap: () {
+                setState(() {
+                  _cnpjController.text = clientCnpj;
+                  _cpfController.text = client['cpf'] ?? '';
+                  _showClientSuggestions = false;
+                });
+              },
+            );
+          },
+        )
+            : const SizedBox.shrink(),
+      ],
+    );
+  }
+
+  Widget _buildCurrencyField() {
+    return TextFormField(
+      controller: _amountController,
+      keyboardType: TextInputType.number,
+      decoration: const InputDecoration(
+        labelText: 'Valor',
+        border: OutlineInputBorder(),
+      ),
+      validator: (value) {
+        if (_amountController.numberValue <= 0) {
+          return 'Valor deve ser maior que zero';
+        }
+        return null;
+      },
+    );
+  }
+
+  // Método para o campo de seleção de vendedor
+  Widget _buildSellerDropdown() {
+    return DropdownButtonFormField<String>(
+      hint: const Text('Selecione o Vendedor'),
+      value: _selectedSellerId,
+      items: _sellers.map((seller) {
+        return DropdownMenuItem<String>(
+          value: seller['uid'],
+          child: Text(seller['name']),
+        );
+      }).toList(),
+      onChanged: (value) {
+        setState(() {
+          _selectedSellerId = value;
+        });
+      },
+      decoration: const InputDecoration(
+        labelText: 'Vendedor',
+        border: OutlineInputBorder(),
+      ),
+      validator: (value) =>
+      value == null || value.isEmpty ? 'Campo obrigatório' : null,
+    );
+  }
+
+// Método para o campo de seleção da origem de venda
+  Widget _buildSalesOriginDropdown() {
+    const salesOrigins = ['Inbound', 'Outbound'];
+
+    return DropdownButtonFormField<String>(
+      value: _selectedSalesOrigin,
+      items: salesOrigins.map((origin) {
+        return DropdownMenuItem<String>(
+          value: origin,
+          child: Text(origin),
+        );
+      }).toList(),
+      onChanged: (value) {
+        setState(() {
+          _selectedSalesOrigin = value;
+        });
+      },
+      decoration: const InputDecoration(
+        labelText: 'Origem da Venda',
+        border: OutlineInputBorder(),
+      ),
+      validator: (value) =>
+      value == null || value.isEmpty ? 'Campo obrigatório' : null,
+    );
+  }
+
+// Método genérico para campos de texto
   Widget _buildTextField(TextEditingController controller, String label,
       [TextInputType? type]) {
     return TextFormField(
@@ -227,40 +289,27 @@ class _ContractFormPageState extends State<ContractFormPage> {
     );
   }
 
-  Widget _buildCurrencyField() {
-    return TextFormField(
-      controller: _amountController,
-      keyboardType: TextInputType.number,
-      decoration: InputDecoration(
-        labelText: 'Valor',
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.0),
-        ),
-      ),
-      validator: (value) =>
-      value == null || value.isEmpty ? 'Campo obrigatório' : null,
-    );
-  }
-
+// Método para o campo de seleção de forma de pagamento
   Widget _buildPaymentMethodDropdown() {
     const paymentMethods = ['Crédito', 'Débito', 'Boleto'];
 
     return DropdownButtonFormField<String>(
-      hint: const Text('Forma de Pagamento'),
       items: paymentMethods.map((method) {
-        return DropdownMenuItem(value: method, child: Text(method));
+        return DropdownMenuItem<String>(
+          value: method,
+          child: Text(method),
+        );
       }).toList(),
       onChanged: (value) {
         _paymentMethodController.text = value!;
       },
-      decoration: InputDecoration(
+      decoration: const InputDecoration(
         labelText: 'Forma de Pagamento',
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.0),
-        ),
+        border: OutlineInputBorder(),
       ),
       validator: (value) =>
       value == null || value.isEmpty ? 'Campo obrigatório' : null,
     );
   }
+
 }
