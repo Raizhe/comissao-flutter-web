@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../data/models/lead_model.dart';
 import '../../../data/models/meet_model.dart';
+import '../../../data/models/seller_model.dart';
 import '../../../data/repositories/lead_repository.dart';
 import '../../../data/repositories/meet_repository.dart';
 
@@ -10,21 +13,44 @@ class LeadFormPage extends StatefulWidget {
   const LeadFormPage({Key? key}) : super(key: key);
 
   @override
-  State<LeadFormPage> createState() => _LeadFormPageState();
+  _LeadFormPageState createState() => _LeadFormPageState();
 }
 
 class _LeadFormPageState extends State<LeadFormPage> {
   final _nomeOportunidadeController = TextEditingController();
   final _linkController = TextEditingController();
-  final _leadRepository = LeadRepository();
-  final _meetRepository = MeetRepository();
   String? _origem;
-  String? _selectedSeller;
+  String? _selectedSeller; // Armazena o vendedor selecionado
+  List<SellerModel> _sellers = [];
   DateTime? _dataReuniao;
   TimeOfDay? _horaReuniao;
 
+  final LeadRepository _leadRepository = LeadRepository();
+  final MeetRepository _meetRepository = MeetRepository();
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchSellers(); // Carregar vendedores no início
+  }
+
+  Future<void> _fetchSellers() async {
+    QuerySnapshot snapshot =
+        await FirebaseFirestore.instance.collection('sellers').get();
+    setState(() {
+      _sellers =
+          snapshot.docs.map((doc) => SellerModel.fromFirestore(doc)).toList();
+    });
+  }
+
   Future<void> _addLead() async {
-    if (_origem == null || _dataReuniao == null || _horaReuniao == null || _selectedSeller == null) {
+    if (_nomeOportunidadeController.text.trim().isEmpty ||
+        _selectedSeller == null ||
+        _linkController.text.trim().isEmpty ||
+        _origem == null ||
+        _dataReuniao == null ||
+        _horaReuniao == null) {
       Get.snackbar(
         'Erro',
         'Por favor, preencha todos os campos obrigatórios.',
@@ -35,8 +61,11 @@ class _LeadFormPageState extends State<LeadFormPage> {
     }
 
     try {
+      setState(() => _isLoading = true);
+
       String leadId = const Uuid().v4();
       String meetId = const Uuid().v4();
+
       final DateTime dataHoraReuniao = DateTime(
         _dataReuniao!.year,
         _dataReuniao!.month,
@@ -53,17 +82,17 @@ class _LeadFormPageState extends State<LeadFormPage> {
         origem: _origem!,
       );
 
-      await _leadRepository.addLead(lead);
-      await _meetRepository.addMeet(
-        MeetModel(
-          name: lead.name,
-          meetId: meetId,
-          leadId: leadId,
-          dataAgendamento: DateTime.now(),
-          dataMeet: dataHoraReuniao,
-          status: 'Pendente',
-        ),
+      MeetModel meet = MeetModel(
+        name: _nomeOportunidadeController.text.trim(),
+        meetId: meetId,
+        leadId: leadId,
+        dataAgendamento: DateTime.now(),
+        dataMeet: dataHoraReuniao,
+        status: 'Pendente',
       );
+
+      await _leadRepository.addLead(lead);
+      await _meetRepository.addMeet(meet);
 
       Get.snackbar(
         'Sucesso',
@@ -80,11 +109,13 @@ class _LeadFormPageState extends State<LeadFormPage> {
         backgroundColor: Colors.red,
         colorText: Colors.white,
       );
+    } finally {
+      setState(() => _isLoading = false);
     }
   }
 
   Future<void> _selectDate(BuildContext context) async {
-    final picked = await showDatePicker(
+    final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now(),
       firstDate: DateTime.now(),
@@ -96,7 +127,7 @@ class _LeadFormPageState extends State<LeadFormPage> {
   }
 
   Future<void> _selectTime(BuildContext context) async {
-    final picked = await showTimePicker(
+    final TimeOfDay? picked = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.now(),
     );
@@ -109,15 +140,13 @@ class _LeadFormPageState extends State<LeadFormPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFEFEFEF),
-      appBar: AppBar(
-        title: const Text('Cadastrar Lead'),
-      ),
+      appBar: AppBar(title: const Text('Cadastrar Lead')),
       body: Center(
         child: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: SizedBox(
-              width: 600,
+              width: 600, // Definição de largura do card
               child: Card(
                 elevation: 8.0,
                 shape: RoundedRectangleBorder(
@@ -137,7 +166,9 @@ class _LeadFormPageState extends State<LeadFormPage> {
                         ),
                       ),
                       const SizedBox(height: 24),
-                      _buildFormGrid(),
+                      _buildFormGrid(), // Grade de campos do formulário
+                      const SizedBox(height: 16),
+                      _buildDateAndTimePickers(), // Campos de Data e Hora
                       const SizedBox(height: 24),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
@@ -163,35 +194,74 @@ class _LeadFormPageState extends State<LeadFormPage> {
     );
   }
 
+// Função para construir o Grid com os campos de formulário
   Widget _buildFormGrid() {
     return GridView(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
+        crossAxisCount: 2, // Dois campos por linha
         childAspectRatio: 3,
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
       ),
       children: [
-        _buildTextField(_nomeOportunidadeController, 'Nome da Oportunidade'),
-        _buildTextField(_linkController, 'Link da Oportunidade'),
-        _buildDropdownButtonFormField(
-          'Origem',
-          ['Inbound', 'Outbound'],
-              (value) => _origem = value,
+        TextField(
+          controller: _nomeOportunidadeController,
+          decoration: const InputDecoration(
+            labelText: 'Nome da Oportunidade',
+            border: OutlineInputBorder(),
+          ),
         ),
-        _buildDropdownButtonFormField(
-          'Vendedor',
-          ['Vendedor 1', 'Vendedor 2'],
-              (value) => _selectedSeller = value,
+        DropdownButtonFormField<String>(
+          value: _selectedSeller,
+          hint: const Text('Selecione um vendedor'),
+          items: _sellers.map((seller) {
+            return DropdownMenuItem(
+              value: seller.name,
+              child: Text(seller.name),
+            );
+          }).toList(),
+          onChanged: (value) => setState(() => _selectedSeller = value),
+          decoration: const InputDecoration(
+            border: OutlineInputBorder(),
+          ),
         ),
+        TextField(
+          controller: _linkController,
+          decoration: const InputDecoration(
+            labelText: 'Link da Oportunidade',
+            border: OutlineInputBorder(),
+          ),
+        ),
+        DropdownButtonFormField<String>(
+          value: _origem,
+          hint: const Text('Origem'),
+          items: ['Inbound', 'Outbound'].map((String value) {
+            return DropdownMenuItem(
+              value: value,
+              child: Text(value),
+            );
+          }).toList(),
+          onChanged: (value) => setState(() => _origem = value),
+          decoration: const InputDecoration(
+            border: OutlineInputBorder(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDateAndTimePickers() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
         ListTile(
           leading: const Icon(Icons.calendar_today),
           title: Text(
             _dataReuniao == null
                 ? 'Selecione a Data da Reunião'
-                : 'Data: ${_dataReuniao!.day}/${_dataReuniao!.month}/${_dataReuniao!.year}',
+                : 'Data: ${DateFormat('dd/MM/yyyy').format(_dataReuniao!)}',
           ),
           onTap: () => _selectDate(context),
         ),
@@ -205,37 +275,6 @@ class _LeadFormPageState extends State<LeadFormPage> {
           onTap: () => _selectTime(context),
         ),
       ],
-    );
-  }
-
-  Widget _buildTextField(TextEditingController controller, String label) {
-    return TextField(
-      controller: controller,
-      decoration: InputDecoration(
-        labelText: label,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.0),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDropdownButtonFormField(
-      String label, List<String> items, ValueChanged<String?> onChanged) {
-    return DropdownButtonFormField<String>(
-      decoration: InputDecoration(
-        labelText: label,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12.0),
-        ),
-      ),
-      items: items.map((item) {
-        return DropdownMenuItem<String>(
-          value: item,
-          child: Text(item),
-        );
-      }).toList(),
-      onChanged: onChanged,
     );
   }
 }
