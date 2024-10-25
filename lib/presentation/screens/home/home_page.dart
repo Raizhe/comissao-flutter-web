@@ -207,8 +207,17 @@ class HomePage extends StatelessWidget {
       Map<String, int> sellerData, Map<String, String> sellerNames) {
     final colors = Colors.primaries;
 
-    final filteredData =
-    sellerData.entries.where((entry) => entry.value > 0).toList();
+    // Filtrar apenas vendedores com valores maiores que 0.
+    final filteredData = sellerData.entries
+        .where((entry) => entry.value > 0 && sellerNames.containsKey(entry.key))
+        .toList();
+
+    // Verificar se há dados para mostrar. Se não houver, mostrar um fallback.
+    if (filteredData.isEmpty) {
+      return const Center(
+        child: Text('Nenhum dado disponível para os vendedores'),
+      );
+    }
 
     return SizedBox(
       width: 300,
@@ -216,15 +225,18 @@ class HomePage extends StatelessWidget {
       child: PieChart(
         PieChartData(
           sections: filteredData.map((entry) {
-            final sellerName = sellerNames[entry.key] ?? '';
+            final sellerName = sellerNames[entry.key] ?? 'Desconhecido';
             final colorIndex = filteredData.indexOf(entry) % colors.length;
 
             return PieChartSectionData(
               value: entry.value.toDouble(),
               color: colors[colorIndex],
               title: sellerName,
-              titleStyle:
-              const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+              titleStyle: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.black, // Cor do texto para maior visibilidade
+              ),
             );
           }).toList(),
         ),

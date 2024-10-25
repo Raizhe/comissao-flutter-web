@@ -1,9 +1,9 @@
-// lib/data/models/contract_model.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:get/get.dart'; // Importando GetX
 
 class ContractModel {
   final String contractId;
-  final String clientCNPJ; // Substituindo clientId por clientCNPJ
+  final String clientCNPJ;
   final String clientName;
   final String sellerId;
   final String type;
@@ -16,6 +16,9 @@ class ContractModel {
   final int installments;
   final String renewalType;
   final String salesOrigin;
+
+  // Propriedade reativa para hover
+  final isHovered = false.obs;
 
   ContractModel({
     required this.contractId,
@@ -44,7 +47,9 @@ class ContractModel {
       type: data['type'] ?? '',
       amount: (data['amount'] as num).toDouble(),
       startDate: (data['startDate'] as Timestamp).toDate(),
-      endDate: data['endDate'] != null ? (data['endDate'] as Timestamp).toDate() : null,
+      endDate: data['endDate'] != null
+          ? (data['endDate'] as Timestamp).toDate()
+          : null,
       status: data['status'] ?? '',
       createdAt: (data['createdAt'] as Timestamp).toDate(),
       paymentMethod: data['paymentMethod'] ?? '',

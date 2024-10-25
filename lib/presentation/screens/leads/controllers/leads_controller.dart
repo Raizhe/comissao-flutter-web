@@ -12,63 +12,39 @@ class LeadController extends GetxController {
 
   var isLoading = false.obs;
 
-  Future<void> addLead(LeadModel lead) async {
+  // Adicionar um novo lead e agendar reunião automaticamente
+  Future<void> addLeadAndMeeting(
+      LeadModel lead, DateTime scheduleDate, DateTime? meetingDate) async {
     try {
-      isLoading(true); // Inicia o carregamento
+      isLoading(true); // Inicia carregamento
+
+      // Adiciona o lead ao Firestore
       await _leadRepository.addLead(lead);
-      _showSuccess('Lead cadastrado com sucesso!');
-    } catch (e) {
-      _showError('Erro ao cadastrar lead: $e');
-    } finally {
-      isLoading(false); // Finaliza o carregamento
-    }
-  }
 
-  Future<void> addMeetingForLead(String leadId, DateTime scheduleDate, DateTime? meetingDate) async {
-    try {
-      isLoading(true);
+      // Cria reunião com nome do lead
       String meetId = const Uuid().v4();
-
       MeetModel meet = MeetModel(
         meetId: meetId,
-        leadId: leadId,
+        leadId: lead.leadId,
         dataAgendamento: scheduleDate,
-        dataMeet: meetingDate, // Agora este campo é opcional
-        status: 'Não', // Default status
+        dataMeet: meetingDate,
+        status: 'Não', // Status inicial
+        name: lead.name, // Nome do lead
       );
 
+      // Adiciona a reunião ao Firestore
       await _meetRepository.addMeet(meet);
-      _showSuccess('Meeting agendado com sucesso!');
+
+      // Mensagem de sucesso
+      _showSuccess('Lead e reunião cadastrados com sucesso!');
     } catch (e) {
-      _showError('Erro ao agendar meeting: $e');
+      _showError('Erro ao cadastrar lead e reunião: $e');
     } finally {
-      isLoading(false);
+      isLoading(false); // Finaliza carregamento
     }
   }
 
-  //
-  // Future<void> addMeetingForLead(String leadId, DateTime scheduleDate) async {
-  //   try {
-  //     isLoading(true);
-  //     String meetId = const Uuid().v4();
-  //
-  //     MeetModel meet = MeetModel(
-  //       meetId: meetId,
-  //       leadId: leadId,
-  //       dataAgendamento: scheduleDate,
-  //       dataReuniao: null,
-  //       status: 'Não', // Default status
-  //     );
-  //
-  //     await _meetRepository.addMeet(meet);
-  //     _showSuccess('Meeting agendado com sucesso!');
-  //   } catch (e) {
-  //     _showError('Erro ao agendar meeting: $e');
-  //   } finally {
-  //     isLoading(false);
-  //   }
-  // }
-
+  // Exibir mensagem de sucesso
   void _showSuccess(String message) {
     Get.snackbar(
       'Sucesso',
@@ -80,6 +56,7 @@ class LeadController extends GetxController {
     );
   }
 
+  // Exibir mensagem de erro
   void _showError(String message) {
     Get.snackbar(
       'Erro',

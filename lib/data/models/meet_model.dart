@@ -1,13 +1,15 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class MeetModel {
+  String name;
   String meetId;
-  String leadId; // ID do lead vinculado à reunião
+  String leadId;
   DateTime dataAgendamento;
-  DateTime? dataMeet; // Data da reunião, consistente com Firestore
-  String status; // Sim, Não, Remarcada
+  DateTime? dataMeet;
+  String status;
 
   MeetModel({
+    required this.name,
     required this.meetId,
     required this.leadId,
     required this.dataAgendamento,
@@ -18,10 +20,11 @@ class MeetModel {
   // Converter para JSON
   Map<String, dynamic> toJson() {
     return {
+      'name': name,
       'meetId': meetId,
       'leadId': leadId,
       'dataAgendamento': dataAgendamento,
-      'dataMeet': dataMeet, // Nome consistente com o Firestore
+      'dataMeet': dataMeet,
       'status': status,
     };
   }
@@ -29,13 +32,14 @@ class MeetModel {
   // Converter JSON para MeetModel
   factory MeetModel.fromJson(Map<String, dynamic> json) {
     return MeetModel(
-      meetId: json['meetId'],
-      leadId: json['leadId'],
+      name: json['name'] ?? 'Nome não disponível',
+      meetId: json['meetId'] ?? '',
+      leadId: json['leadId'] ?? '',
       dataAgendamento: (json['dataAgendamento'] as Timestamp).toDate(),
       dataMeet: json['dataMeet'] != null
           ? (json['dataMeet'] as Timestamp).toDate()
           : null,
-      status: json['status'],
+      status: json['status'] ?? 'Não',
     );
   }
 }

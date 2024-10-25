@@ -1,27 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../data/models/lead_model.dart';
-import '../../../widgets/navbar_widget.dart';
 
-class LeadPage extends StatefulWidget {
-  const LeadPage({Key? key}) : super(key: key);
+class LeadsPage extends StatefulWidget {
+  const LeadsPage({Key? key}) : super(key: key);
 
   @override
-  _LeadPageState createState() => _LeadPageState();
+  _LeadsPageState createState() => _LeadsPageState();
 }
 
-class _LeadPageState extends State<LeadPage> {
+class _LeadsPageState extends State<LeadsPage> {
   List<LeadModel> _leads = [];
   List<LeadModel> _filteredLeads = [];
-
-  Stream<List<LeadModel>> _fetchLeads() {
-    return FirebaseFirestore.instance.collection('leads').snapshots().map(
-          (snapshot) => snapshot.docs.map((doc) {
-        return LeadModel.fromJson(doc.data() as Map<String, dynamic>);
-      }).toList(),
-    );
-  }
+  bool _isAscending = true;
 
   @override
   void initState() {
@@ -34,14 +27,32 @@ class _LeadPageState extends State<LeadPage> {
     });
   }
 
+  Stream<List<LeadModel>> _fetchLeads() {
+    return FirebaseFirestore.instance.collection('leads').snapshots().map(
+          (snapshot) => snapshot.docs.map((doc) {
+        return LeadModel.fromJson(doc.data() as Map<String, dynamic>);
+      }).toList(),
+    );
+  }
+
   void _searchLeads(String query) {
     setState(() {
       _filteredLeads = _leads.where((lead) {
         return lead.name.toLowerCase().contains(query.toLowerCase()) ||
             lead.vendedor.toLowerCase().contains(query.toLowerCase()) ||
-            lead.sdr.toLowerCase().contains(query.toLowerCase()) ||
             lead.origem.toLowerCase().contains(query.toLowerCase());
       }).toList();
+    });
+  }
+
+  void _sortLeads() {
+    setState(() {
+      _isAscending = !_isAscending;
+      _filteredLeads.sort((a, b) {
+        return _isAscending
+            ? a.name.compareTo(b.name)
+            : b.name.compareTo(a.name);
+      });
     });
   }
 
@@ -56,19 +67,58 @@ class _LeadPageState extends State<LeadPage> {
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 800),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Navbar com alinhamento igual à tabela
-                NavbarWidget(
-                  hintText: 'Buscar por nome, vendedor, SDR, ou origem',
-                  onSearch: _searchLeads,
+            child: Card(
+              elevation: 8,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.0),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            decoration: const InputDecoration(
+                              hintText: 'Buscar por nome, vendedor ou origem',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.search),
+                            ),
+                            onSubmitted: _searchLeads,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        PopupMenuButton<String>(
+                          icon: const Icon(Icons.sort),
+                          onSelected: (value) {
+                            if (value == 'A-Z') {
+                              setState(() => _isAscending = true);
+                            } else {
+                              setState(() => _isAscending = false);
+                            }
+                            _sortLeads();
+                          },
+                          itemBuilder: (context) => [
+                            const PopupMenuItem(
+                              value: 'A-Z',
+                              child: Text('Ordenar A-Z'),
+                            ),
+                            const PopupMenuItem(
+                              value: 'Z-A',
+                              child: Text('Ordenar Z-A'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: _buildLeadTable(),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 16),
-                Expanded(
-                  child: _buildLeadTable(),
-                ),
-              ],
+              ),
             ),
           ),
         ),
@@ -89,7 +139,6 @@ class _LeadPageState extends State<LeadPage> {
         columnSpacing: 60,
         columns: const [
           DataColumn(label: Text('Nome')),
-          DataColumn(label: Text('SDR')),
           DataColumn(label: Text('Vendedor')),
           DataColumn(label: Text('Origem')),
           DataColumn(label: Text('Link')),
@@ -98,7 +147,6 @@ class _LeadPageState extends State<LeadPage> {
           return DataRow(
             cells: [
               DataCell(Text(lead.name)),
-              DataCell(Text(lead.sdr)),
               DataCell(Text(lead.vendedor)),
               DataCell(Text(lead.origem)),
               DataCell(
