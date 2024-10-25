@@ -55,6 +55,8 @@ class ClientModel {
     );
   }
 
+
+
   // Conversão para JSON
   Map<String, dynamic> toJson() {
     return {

@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart'; // Importação para formatação de datas
+import 'package:intl/intl.dart';
 import '../../../data/models/contract_model.dart';
 
 class ContractDetailsPage extends StatelessWidget {
   final ContractModel contract;
+  final String sellerName;
 
-  const ContractDetailsPage({Key? key, required this.contract}) : super(key: key);
+  const ContractDetailsPage({
+    Key? key,
+    required this.contract,
+    required this.sellerName,
+  }) : super(key: key);
 
-  // Função para formatar as datas de tipo DateTime
   String _formatDate(DateTime? date) {
     if (date == null) return 'Não disponível';
-    return DateFormat('dd/MM/yyyy').format(date); // Formato: dd/MM/yyyy
+    return DateFormat('dd/MM/yyyy').format(date);
   }
 
   @override
@@ -31,59 +35,13 @@ class ContractDetailsPage extends StatelessWidget {
               ),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
-                child: SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Contrato: ${contract.clientName}',
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      _buildDetailRow('ID do Contrato', contract.contractId),
-                      _buildDetailRow('CNPJ do Cliente', contract.clientCNPJ),
-                      _buildDetailRow('Nome do Cliente', contract.clientName),
-                      _buildDetailRow('Vendedor', contract.sellerId),
-                      _buildDetailRow('Tipo', contract.type),
-                      _buildDetailRow(
-                        'Valor',
-                        'R\$${contract.amount.toStringAsFixed(2)}',
-                      ),
-                      _buildDetailRow('Status', contract.status),
-                      _buildDetailRow(
-                        'Data de Início',
-                        _formatDate(contract.startDate),
-                      ),
-                      _buildDetailRow(
-                        'Data de Término',
-                        _formatDate(contract.endDate),
-                      ),
-                      _buildDetailRow(
-                        'Data de Criação',
-                        _formatDate(contract.createdAt),
-                      ),
-                      _buildDetailRow('Método de Pagamento', contract.paymentMethod),
-                      _buildDetailRow(
-                        'Parcelas',
-                        '${contract.installments.toString()}x',
-                      ),
-                      _buildDetailRow('Tipo de Renovação', contract.renewalType),
-                      _buildDetailRow('Origem de Vendas', contract.salesOrigin),
-                      const SizedBox(height: 12),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.pop(context); // Volta para a página anterior
-                          },
-                          child: const Text('Voltar'),
-                        ),
-                      ),
-                    ],
-                  ),
+                child: Table(
+                  columnWidths: const {
+                    0: FixedColumnWidth(200.0),
+                    1: FlexColumnWidth(),
+                  },
+                  border: TableBorder.all(color: Colors.grey.shade300, width: 1),
+                  children: _buildTableRows(),
                 ),
               ),
             ),
@@ -93,26 +51,33 @@ class ContractDetailsPage extends StatelessWidget {
     );
   }
 
-  // Widget auxiliar para exibir uma linha de detalhe
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            '$label:',
+  List<TableRow> _buildTableRows() {
+    return [
+      _buildTableRow('Cliente', contract.clientName),
+      _buildTableRow('Vendedor', sellerName),
+      _buildTableRow('Tipo', contract.type),
+      _buildTableRow('Valor', 'R\$${contract.amount.toStringAsFixed(2)}'),
+      _buildTableRow('Status', contract.status),
+      _buildTableRow('Início', _formatDate(contract.startDate)),
+      _buildTableRow('Término', _formatDate(contract.endDate)),
+    ];
+  }
+
+  TableRow _buildTableRow(String label, String value) {
+    return TableRow(
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8.0),
+          child: Text(
+            label,
             style: const TextStyle(fontWeight: FontWeight.bold),
           ),
-          Flexible(
-            child: Text(
-              value,
-              overflow: TextOverflow.ellipsis, // Garante que o texto longo não estoure
-              style: const TextStyle(fontSize: 16),
-            ),
-          ),
-        ],
-      ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8.0),
+          child: Center(child: Text(value)),
+        ),
+      ],
     );
   }
 }

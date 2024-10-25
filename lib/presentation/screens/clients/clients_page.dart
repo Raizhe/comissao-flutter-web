@@ -1,8 +1,8 @@
+import 'package:comissao_flutter_web/presentation/screens/clients/clients_details_page.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../../data/models/clients_model.dart';
-import '../../../widgets/navbar_widget.dart';
 
 class ClientsPage extends StatefulWidget {
   const ClientsPage({Key? key}) : super(key: key);
@@ -14,16 +14,7 @@ class ClientsPage extends StatefulWidget {
 class _ClientsPageState extends State<ClientsPage> {
   List<ClientModel> _clients = [];
   List<ClientModel> _filteredClients = [];
-  bool _isAscending = true; // Controla a ordem de ordenação
-
-  // Busca os clientes do Firestore
-  Stream<List<ClientModel>> _fetchClients() {
-    return FirebaseFirestore.instance.collection('clients').snapshots().map(
-          (snapshot) => snapshot.docs.map((doc) {
-        return ClientModel.fromJson(doc.data() as Map<String, dynamic>);
-      }).toList(),
-    );
-  }
+  bool _isAscending = true;
 
   @override
   void initState() {
@@ -36,7 +27,14 @@ class _ClientsPageState extends State<ClientsPage> {
     });
   }
 
-  // Filtra clientes com base na pesquisa
+  Stream<List<ClientModel>> _fetchClients() {
+    return FirebaseFirestore.instance.collection('clients').snapshots().map(
+          (snapshot) => snapshot.docs.map((doc) {
+        return ClientModel.fromJson(doc.data() as Map<String, dynamic>);
+      }).toList(),
+    );
+  }
+
   void _searchClients(String query) {
     setState(() {
       _filteredClients = _clients.where((client) {
@@ -48,7 +46,6 @@ class _ClientsPageState extends State<ClientsPage> {
     });
   }
 
-  // Ordena os clientes de forma crescente ou decrescente
   void _sortClients() {
     setState(() {
       _isAscending = !_isAscending;
@@ -71,19 +68,63 @@ class _ClientsPageState extends State<ClientsPage> {
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 800),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Barra de pesquisa no topo
-                NavbarWidget(
-                  hintText: 'Buscar por nome, empresa, telefone ou situação',
-                  onSearch: _searchClients,
+            child: Card(
+              elevation: 8,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.0),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            decoration: const InputDecoration(
+                              hintText:
+                              'Buscar por nome, empresa, telefone ou situação',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.search),
+                            ),
+                            onSubmitted: _searchClients,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        PopupMenuButton<String>(
+                          icon: const Icon(Icons.sort),
+                          onSelected: (value) {
+                            if (value == 'A-Z') {
+                              setState(() => _isAscending = true);
+                            } else {
+                              setState(() => _isAscending = false);
+                            }
+                            _sortClients();
+                          },
+                          itemBuilder: (context) => [
+                            const PopupMenuItem(
+                              value: 'A-Z',
+                              child: Text('Ordenar A-Z'),
+                            ),
+                            const PopupMenuItem(
+                              value: 'Z-A',
+                              child: Text('Ordenar Z-A'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          return _buildAdaptiveClientTable(constraints.maxWidth);
+                        },
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 16),
-                Expanded(
-                  child: _buildClientTable(),
-                ),
-              ],
+              ),
             ),
           ),
         ),
@@ -91,73 +132,32 @@ class _ClientsPageState extends State<ClientsPage> {
     );
   }
 
-  // Cria uma tabela para exibir os clientes
-  Widget _buildClientTable() {
-    if (_filteredClients.isEmpty) {
-      return const Center(
-        child: Text('Nenhum cliente encontrado.'),
-      );
-    }
+  Widget _buildAdaptiveClientTable(double maxWidth) {
+    final isCompact = maxWidth < 600;
 
     return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
       child: DataTable(
-        columnSpacing: 60,
+        columnSpacing: isCompact ? 20 : 50,
+        headingRowHeight: 40,
+        border: TableBorder(
+          verticalInside: BorderSide(
+            width: 1,
+            color: Colors.grey.shade300,
+          ),
+        ),
         columns: [
           const DataColumn(label: Text('Nome')),
-          const DataColumn(label: Text('Empresa')),
-          const DataColumn(label: Text('Telefone')),
+          if (!isCompact) const DataColumn(label: Text('Empresa')),
+          if (!isCompact) const DataColumn(label: Text('Telefone')),
           const DataColumn(label: Text('Situação')),
-          DataColumn(
-            label: Row(
-              children: [
-                const Text('Ações'),
-                const SizedBox(width: 8),
-                PopupMenuButton<String>(
-                  icon: const Icon(Icons.sort), // Ícone de filtro
-                  onSelected: (value) {
-                    if (value == 'A-Z') {
-                      _sortClientsAscending();
-                    } else if (value == 'Z-A') {
-                      _sortClientsDescending();
-                    }
-                  },
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(
-                      value: 'A-Z',
-                      child: Text('Classificar de A-Z'),
-                    ),
-                    const PopupMenuItem(
-                      value: 'Z-A',
-                      child: Text('Classificar de Z-A'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-
+          const DataColumn(label: Text('Ações')),
         ],
         rows: _filteredClients.map((client) {
           return DataRow(
             cells: [
-              DataCell(
-                GestureDetector(
-                  onTap: () {
-                    Get.toNamed('/client_details', arguments: client);
-                  },
-                  child: Text(
-                    client.clientName,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.normal,
-                    ),
-                  ),
-                ),
-              ),
-              DataCell(Text(client.companyName)),
-              DataCell(Text(client.phone ?? 'Não disponível')),
+              _buildHoverableClientNameCell(client),
+              if (!isCompact) DataCell(Text(client.companyName)),
+              if (!isCompact) DataCell(Text(client.phone ?? 'Não disponível')),
               DataCell(Text(client.situation)),
               DataCell(
                 IconButton(
@@ -173,16 +173,33 @@ class _ClientsPageState extends State<ClientsPage> {
       ),
     );
   }
-  void _sortClientsAscending() {
-    setState(() {
-      _filteredClients.sort((a, b) => a.clientName.compareTo(b.clientName));
-    });
-  }
 
-  void _sortClientsDescending() {
-    setState(() {
-      _filteredClients.sort((a, b) => b.clientName.compareTo(a.clientName));
-    });
-  }
+  DataCell _buildHoverableClientNameCell(ClientModel client) {
+    bool isHovered = false;
 
+    return DataCell(
+      StatefulBuilder(
+        builder: (context, setState) {
+          return MouseRegion(
+            onEnter: (_) => setState(() => isHovered = true),
+            onExit: (_) => setState(() => isHovered = false),
+            child: GestureDetector(
+              onTap: () {
+                Get.toNamed('/client_details', arguments: client);
+              },
+              child: AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 300),
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: isHovered ? FontWeight.bold : FontWeight.normal,
+                  color: Colors.black,
+                ),
+                child: Text(client.clientName),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
 }

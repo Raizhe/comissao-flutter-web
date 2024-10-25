@@ -6,7 +6,6 @@ import 'package:comissao_flutter_web/presentation/screens/contract/contracts_det
 import 'package:comissao_flutter_web/presentation/screens/contract/contracts_page.dart';
 import 'package:comissao_flutter_web/presentation/screens/leads/leads_form_page.dart';
 import 'package:comissao_flutter_web/presentation/screens/leads/leads_page.dart';
-import 'package:comissao_flutter_web/presentation/screens/meet/meet_form-page.dart';
 import 'package:comissao_flutter_web/presentation/screens/meet/meet_page.dart';
 import 'package:comissao_flutter_web/presentation/screens/pre_seller/pre_seller_form_page.dart';
 import 'package:comissao_flutter_web/presentation/screens/seller/seller_form_page.dart';
@@ -14,6 +13,7 @@ import 'package:comissao_flutter_web/presentation/screens/user/user_form_page.da
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:get/get.dart';
+import 'data/models/clients_model.dart';
 import 'firebase_options.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'presentation/screens/login/login_page.dart';
@@ -48,20 +48,21 @@ class MyApp extends StatelessWidget {
         GetPage(name: '/seller_form', page: () => SellerFormPage()),
         GetPage(name: '/user_form', page: () => UserFormPage()),
         GetPage(name: '/contract_form', page: () => const ContractFormPage()),
-        GetPage(name: '/meet_form', page: () => MeetFormPage()),
-        GetPage(name: '/lead_form', page: () => const LeadFormPage()),
-        GetPage(name: '/leads_page', page: () => const LeadPage()),
+        GetPage(name: '/lead_form', page: () =>  LeadFormPage()),
+        GetPage(name: '/leads_page', page: () => const LeadsPage()),
         GetPage(name: '/contracts_page', page: () => ContractsPage()),
-        GetPage(name: '/clients_page', page: () => ClientsPage()),
-        GetPage(name: '/meet_page', page: () => MeetPage()),
+        GetPage(name: '/clients_page', page: () => const ClientsPage()),
+        GetPage(name: '/meet_page', page: () => const MeetPage()),
         GetPage(
           name: '/client_details',
-          page: () => ClientDetailsPage(),
+          page: () => ClientDetailsPage(
+            client: Get.arguments as ClientModel,
+          ),
         ),
         GetPage(
           name: '/contracts_details',
           page: () => ContractDetailsPage(
-            contract: Get.arguments,
+            contract: Get.arguments, sellerName: '',
           ),
         ),
       ],
@@ -86,7 +87,6 @@ class AuthenticationWrapper extends StatelessWidget {
             return HomePage();
           }
         }
-        // Exibe um carregamento enquanto o estado de autenticação está sendo verificado
         return const Scaffold(
           body: Center(
             child: CircularProgressIndicator(),
