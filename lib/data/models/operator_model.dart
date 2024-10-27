@@ -4,14 +4,14 @@ class OperatorModel {
   String operatorId;
   String name;
   String email;
-  double commission;
+  double comissao;
   Timestamp createdAt;
 
   OperatorModel({
     required this.operatorId,
     required this.name,
     required this.email,
-    required this.commission,
+    required this.comissao,
     required this.createdAt,
   });
 
@@ -23,7 +23,7 @@ class OperatorModel {
       operatorId: doc.id,
       name: data['name'] ?? '',
       email: data['email'] ?? '',
-      commission: double.tryParse(data['commission'].toString()) ?? 0.0,
+      comissao: double.tryParse(data['commission'].toString()) ?? 0.0,
       createdAt: data['createdAt'] ?? Timestamp.now(),
     );
   }
@@ -33,7 +33,7 @@ class OperatorModel {
     return {
       'name': name,
       'email': email,
-      'commission': commission,
+      'comissao': comissao,
       'createdAt': createdAt,
     };
   }

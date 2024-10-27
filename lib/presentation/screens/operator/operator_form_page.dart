@@ -150,7 +150,7 @@ class OperatorFormPage extends StatelessWidget {
         operatorId: const Uuid().v4(),
         name: _nameController.text.trim(),
         email: _emailController.text.trim(),
-        commission: double.parse(_commissionController.text.trim()),
+        comissao: double.parse(_commissionController.text.trim()),
         createdAt: Timestamp.fromDate(DateTime.now()),
       );
 
