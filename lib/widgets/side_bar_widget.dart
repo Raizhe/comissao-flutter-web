@@ -49,11 +49,6 @@ class SidebarWidget extends StatelessWidget {
                   text: 'Contratos',
                   route: '/contract_form',
                 ),
-                // _buildDrawerItem(
-                //   icon: Icons.monetization_on,
-                //   text: 'Comissões',
-                //   route: '/commission_form',
-                // ),
                 _buildDrawerItem(
                   icon: Icons.person_outline,
                   text: 'Clientes',
@@ -63,6 +58,11 @@ class SidebarWidget extends StatelessWidget {
                   icon: Icons.show_chart,
                   text: 'Vendedores',
                   route: '/seller_form',
+                ),
+                _buildDrawerItem(
+                  icon: Icons.engineering,
+                  text: 'Operadores', // Novo item para Operadores
+                  route: '/operator_form', // Rota para o formulário de operadores
                 ),
               ],
               if (role == 'seller' || role == 'pre_seller') ...[
