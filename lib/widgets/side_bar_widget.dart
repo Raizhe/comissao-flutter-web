@@ -61,8 +61,8 @@ class SidebarWidget extends StatelessWidget {
                 ),
                 _buildDrawerItem(
                   icon: Icons.engineering,
-                  text: 'Operadores', // Novo item para Operadores
-                  route: '/operator_form', // Rota para o formulário de operadores
+                  text: 'Operadores',
+                  route: '/operator_form',
                 ),
               ],
               if (role == 'seller' || role == 'pre_seller') ...[

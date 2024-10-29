@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
 import '../../../data/repositories/user_repository.dart';
 import '../../../widgets/side_bar_widget.dart';
 
@@ -19,7 +20,7 @@ class HomePage extends StatelessWidget {
   Future<String> _fetchUserName(String uid) async {
     try {
       DocumentSnapshot<Map<String, dynamic>> snapshot =
-      await FirebaseFirestore.instance.collection('users').doc(uid).get();
+          await FirebaseFirestore.instance.collection('users').doc(uid).get();
       return snapshot.data()?['name'] ?? 'Usuário';
     } catch (e) {
       print('Erro ao buscar nome do usuário: $e');
@@ -43,7 +44,7 @@ class HomePage extends StatelessWidget {
 
   Future<Map<String, String>> _fetchSellerNames() async {
     QuerySnapshot snapshot =
-    await FirebaseFirestore.instance.collection('sellers').get();
+        await FirebaseFirestore.instance.collection('sellers').get();
     return {
       for (var doc in snapshot.docs) doc.id: doc['name'] ?? 'Desconhecido',
     };
@@ -51,7 +52,7 @@ class HomePage extends StatelessWidget {
 
   Future<Map<String, int>> _fetchSellerPerformance() async {
     QuerySnapshot snapshot =
-    await FirebaseFirestore.instance.collection('contracts').get();
+        await FirebaseFirestore.instance.collection('contracts').get();
     Map<String, int> sellerPerformance = {};
 
     for (var doc in snapshot.docs) {
@@ -64,7 +65,7 @@ class HomePage extends StatelessWidget {
   Future<int> _getCount(String collection) async {
     try {
       QuerySnapshot snapshot =
-      await FirebaseFirestore.instance.collection(collection).get();
+          await FirebaseFirestore.instance.collection(collection).get();
       return snapshot.size;
     } catch (e) {
       print('Erro ao buscar contagem: $e');
@@ -167,7 +168,7 @@ class HomePage extends StatelessWidget {
                                               'Erro ao carregar nomes.');
                                         } else {
                                           final sellerNames =
-                                          nameSnapshot.data!;
+                                              nameSnapshot.data!;
                                           return _buildPieChart(
                                               sellerData, sellerNames);
                                         }
@@ -182,12 +183,12 @@ class HomePage extends StatelessWidget {
                           Column(
                             children: [
                               const Text(
-                                'Comparação Vendas vs Leads',
+                                'Crescimento vendas',
                                 style: TextStyle(
                                     fontSize: 18, fontWeight: FontWeight.bold),
                               ),
                               const SizedBox(height: 10),
-                              _buildBarChart(data),
+                              _buildSalesGrowthChart(),
                             ],
                           ),
                         ],
@@ -198,6 +199,34 @@ class HomePage extends StatelessWidget {
               }
             },
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWeeklyBarChart(List<Map<String, dynamic>> data) {
+    return SizedBox(
+      width: 400,
+      height: 300,
+      child: BarChart(
+        BarChartData(
+          alignment: BarChartAlignment.spaceAround,
+          maxY: data
+                  .map((e) => e['amount'] as double)
+                  .reduce((a, b) => a > b ? a : b) +
+              5,
+          barGroups: data.map((entry) {
+            return BarChartGroupData(
+              x: entry['week'],
+              barRods: [
+                BarChartRodData(
+                  toY: entry['amount'],
+                  color: Colors.green,
+                  width: 20,
+                ),
+              ],
+            );
+          }).toList(),
         ),
       ),
     );
@@ -244,34 +273,135 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildBarChart(Map<String, int> data) {
+  Widget _buildSalesGrowthChart() {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: _fetchWeeklySalesData(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const CircularProgressIndicator();
+        } else if (snapshot.hasError) {
+          return Text('Erro: ${snapshot.error}');
+        } else if (snapshot.data == null || snapshot.data!.isEmpty) {
+          return const Text('Nenhum dado disponível.');
+        } else {
+          final weeklySalesData = snapshot.data!;
+          return _buildLineChart(weeklySalesData);
+        }
+      },
+    );
+  }
+
+
+
+  Future<List<Map<String, dynamic>>> _fetchWeeklySalesData() async {
+    try {
+      QuerySnapshot snapshot =
+      await FirebaseFirestore.instance.collection('contracts').get();
+
+      Map<int, double> weeklySales = {}; // Total por semana
+
+      for (var doc in snapshot.docs) {
+        // Verifica se os campos necessários existem e não são nulos
+        if (doc['startDate'] != null && doc['feeMensal'] != null) {
+          DateTime startDate = (doc['startDate'] as Timestamp).toDate();
+          double feeMensal = doc['feeMensal']?.toDouble() ?? 0.0;
+
+          // Distribui o feeMensal para cada semana do contrato até a semana atual
+          for (int week = _getWeekOfYear(startDate);
+          week <= _getWeekOfYear(DateTime.now());
+          week++) {
+            weeklySales[week] = (weeklySales[week] ?? 0) + feeMensal;
+          }
+        }
+      }
+
+      // Converte o Map para uma lista ordenada por semana
+      return weeklySales.entries
+          .map((entry) => {'week': entry.key, 'amount': entry.value})
+          .toList();
+    } catch (e) {
+      print('Erro ao carregar dados: $e');
+      rethrow; // Lança o erro novamente para ser tratado no FutureBuilder
+    }
+  }
+
+
+  // Função para calcular a semana do ano
+  int _getWeekOfYear(DateTime date) {
+    final firstDayOfYear = DateTime(date.year, 1, 1);
+    final daysSinceFirstDay = date.difference(firstDayOfYear).inDays;
+    return (daysSinceFirstDay / 7).ceil();
+  }
+
+
+  Widget _buildLineChart(List<Map<String, dynamic>> salesData) {
+    double maxY = salesData
+        .map((e) => e['amount'] as double)
+        .reduce((a, b) => a > b ? a : b) +
+        10;
+
     return SizedBox(
       width: 400,
       height: 300,
-      child: BarChart(
-        BarChartData(
-          alignment: BarChartAlignment.spaceAround,
-          maxY: data.values.reduce((a, b) => a > b ? a : b).toDouble() + 5,
-          barGroups: [
-            BarChartGroupData(
-              x: 0,
-              barRods: [
-                BarChartRodData(
-                    toY: data['sales']!.toDouble(), color: Colors.orange),
-              ],
-            ),
-            BarChartGroupData(
-              x: 1,
-              barRods: [
-                BarChartRodData(
-                    toY: data['leads']!.toDouble(), color: Colors.blue),
-              ],
+      child: LineChart(
+        LineChartData(
+          lineBarsData: [
+            LineChartBarData(
+              spots: List.generate(salesData.length, (index) {
+                double amount = salesData[index]['amount'];
+                return FlSpot(index.toDouble(), amount);
+              }),
+              isCurved: true,
+              barWidth: 3,
+              color: Colors.green,
+              dotData: FlDotData(show: true),
+              belowBarData: BarAreaData(show: false),
             ),
           ],
+          maxY: maxY,
+          titlesData: FlTitlesData(
+            leftTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 40,
+                getTitlesWidget: (value, meta) {
+                  return Text(
+                    'R\$${value.toInt()}',
+                    style: const TextStyle(fontSize: 12),
+                  );
+                },
+              ),
+            ),
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                getTitlesWidget: (value, meta) {
+                  int index = value.toInt();
+                  if (index >= 0 && index < salesData.length) {
+                    String weekLabel = _getWeekLabel(salesData[index]['week']);
+                    return Text(
+                      weekLabel,
+                      style: const TextStyle(fontSize: 10),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+                interval: 1,
+              ),
+            ),
+          ),
+          gridData: FlGridData(show: true),
+          borderData: FlBorderData(show: true),
         ),
       ),
     );
   }
+
+  // Função para gerar o nome abreviado da semana (Ex: "Sem 42")
+  String _getWeekLabel(int weekNumber) {
+    return 'Sem ${weekNumber.toString()}';
+  }
+
 
   Widget _buildResponsiveGrid(Map<String, int> data) {
     return Wrap(
@@ -302,7 +432,7 @@ class HomePage extends StatelessWidget {
           child: Card(
             elevation: 5,
             shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: Padding(
               padding: const EdgeInsets.all(8.0),
               child: Column(

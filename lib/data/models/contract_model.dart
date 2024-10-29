@@ -24,6 +24,7 @@ class ContractModel {
   final String telefone;
   final String observacoes;
   final double feeMensal;
+  final String costumerSuccess;
 
   ContractModel({
     required this.contractId,
@@ -49,6 +50,7 @@ class ContractModel {
     required this.telefone,
     required this.observacoes,
     required this.feeMensal,
+    required this.costumerSuccess,
   });
 
   /// Converte um documento Firestore para um objeto `ContractModel`
@@ -79,6 +81,7 @@ class ContractModel {
       telefone: data['telefone'] ?? '',
       observacoes: data['observacoes'] ?? '',
       feeMensal: (data['feeMensal'] ?? 0).toDouble(), // Tratando valor nulo
+      costumerSuccess: data['costumerSuccess'] ?? '', // Tratando valor nulo
     );
   }
 
@@ -109,6 +112,7 @@ class ContractModel {
       'telefone': telefone,
       'observacoes': observacoes,
       'feeMensal': feeMensal,
+      'costumerSuccess': costumerSuccess,
     };
   }
 }
