@@ -15,39 +15,13 @@ import '../../../data/repositories/pre_seller_repository.dart';
 import 'controllers/contracts_controller.dart';
 
 class ContractFormPage extends StatefulWidget {
-  const ContractFormPage({Key? key}) : super(key: key);
+  const ContractFormPage({super.key});
 
   @override
   _ContractFormPageState createState() => _ContractFormPageState();
 }
 
 class _ContractFormPageState extends State<ContractFormPage> {
-  // Future<void> _buscarCep(String cep) async {
-  //   try {
-  //     final url = Uri.parse('https://viacep.com.br/ws/$cep/json/');
-  //     final response = await http.get(url);
-  //
-  //     if (response.statusCode == 200) {
-  //       final data = json.decode(response.body);
-  //
-  //       if (data.containsKey('erro') && data['erro'] == true) {
-  //         Get.snackbar('Erro', 'CEP não encontrado.');
-  //         return;
-  //       }
-  //
-  //       setState(() {
-  //         _logradouroController.text = data['logradouro'] ?? '';
-  //         _bairroController.text = data['bairro'] ?? '';
-  //         _cidadeController.text = data['localidade'] ?? '';
-  //         _estadoController.text = data['uf'] ?? '';
-  //       });
-  //     } else {
-  //       Get.snackbar('Erro', 'Erro ao buscar CEP.');
-  //     }
-  //   } catch (e) {
-  //     Get.snackbar('Erro', 'Erro ao buscar CEP: $e');
-  //   }
-  // }
   final _formKey = GlobalKey<FormState>();
 
   // Controllers para os campos
@@ -82,6 +56,23 @@ class _ContractFormPageState extends State<ContractFormPage> {
   final _feeMensalController = TextEditingController();
   final _observacoesController = TextEditingController();
 
+  double _calcularComissao(double valor, String metodoPagamento, int parcelas) {
+    double taxaComissao;
+
+    if (metodoPagamento == 'Cartão') {
+      taxaComissao = parcelas >= 8 ? 0.25 : 0.20;
+    } else if (metodoPagamento == 'Boleto') {
+      taxaComissao = parcelas >= 8 ? 0.15 : 0.12;
+    } else {
+      taxaComissao = 0.10; // Outros métodos
+    }
+
+    return valor * taxaComissao;
+  }
+
+
+
+
   String? _tipoContrato;
   String? _formaPagamento;
   String? _selectedVendedorId;
@@ -107,6 +98,21 @@ class _ContractFormPageState extends State<ContractFormPage> {
     _fetchOperators();
     Get.put(ContractController());
   }
+  //
+  // double _calcularComissao(double valor, String metodoPagamento, int parcelas) {
+  //   double taxaComissao;
+  //
+  //   if (metodoPagamento == 'Cartão') {
+  //     taxaComissao = parcelas >= 8 ? 0.25 : 0.20;
+  //   } else if (metodoPagamento == 'Boleto') {
+  //     taxaComissao = parcelas >= 8 ? 0.15 : 0.12;
+  //   } else {
+  //     taxaComissao = 0.10; // Outros métodos
+  //   }
+  //
+  //   return valor * taxaComissao;
+  // }
+
 
 // Função para buscar vendedores
   Future<void> _fetchSellers() async {
@@ -578,6 +584,13 @@ class _ContractFormPageState extends State<ContractFormPage> {
         final int numeroParcelas = int.tryParse(_parcelasController.text) ?? 1;
         final double feeMensal =
             numeroParcelas > 0 ? valorTotal / numeroParcelas : valorTotal;
+        // Cálculo seguro do fee mensal
+        // Cálculo da comissão
+        final double comissao = _calcularComissao(
+          valorTotal,
+          _formaPagamento ?? 'Crédito',
+          numeroParcelas,
+        );
 
         // Criação do contrato com dados válidos
         final contract = ContractModel(
@@ -611,8 +624,12 @@ class _ContractFormPageState extends State<ContractFormPage> {
           renewalType: 'Manual',
           salesOrigin: 'Inbound',
           costumerSuccess: 'Exemplo de Cs',
+          commission: comissao,
         );
 
+
+
+        contract.commission = contract.calculateCommission();
         // Tentativa de salvar no Firestore
         await Get.find<ContractController>().addContract(contract);
 
@@ -625,4 +642,6 @@ class _ContractFormPageState extends State<ContractFormPage> {
       Get.snackbar('Erro', 'Por favor, preencha todos os campos obrigatórios.');
     }
   }
+
+
 }

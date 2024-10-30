@@ -134,6 +134,7 @@ class HomePage extends StatelessWidget {
                       const SizedBox(height: 30),
                       _buildResponsiveGrid(data),
                       const SizedBox(height: 30),
+                      _buildSellerCommissionsCard(),
                       Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -204,33 +205,33 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildWeeklyBarChart(List<Map<String, dynamic>> data) {
-    return SizedBox(
-      width: 400,
-      height: 300,
-      child: BarChart(
-        BarChartData(
-          alignment: BarChartAlignment.spaceAround,
-          maxY: data
-                  .map((e) => e['amount'] as double)
-                  .reduce((a, b) => a > b ? a : b) +
-              5,
-          barGroups: data.map((entry) {
-            return BarChartGroupData(
-              x: entry['week'],
-              barRods: [
-                BarChartRodData(
-                  toY: entry['amount'],
-                  color: Colors.green,
-                  width: 20,
-                ),
-              ],
-            );
-          }).toList(),
-        ),
-      ),
-    );
-  }
+  // Widget _buildWeeklyBarChart(List<Map<String, dynamic>> data) {
+  //   return SizedBox(
+  //     width: 400,
+  //     height: 300,
+  //     child: BarChart(
+  //       BarChartData(
+  //         alignment: BarChartAlignment.spaceAround,
+  //         maxY: data
+  //                 .map((e) => e['amount'] as double)
+  //                 .reduce((a, b) => a > b ? a : b) +
+  //             5,
+  //         barGroups: data.map((entry) {
+  //           return BarChartGroupData(
+  //             x: entry['week'],
+  //             barRods: [
+  //               BarChartRodData(
+  //                 toY: entry['amount'],
+  //                 color: Colors.green,
+  //                 width: 20,
+  //               ),
+  //             ],
+  //           );
+  //         }).toList(),
+  //       ),
+  //     ),
+  //   );
+  // }
 
   Widget _buildPieChart(
       Map<String, int> sellerData, Map<String, String> sellerNames) {
@@ -273,44 +274,84 @@ class HomePage extends StatelessWidget {
     );
   }
 
-  Widget _buildSalesGrowthChart() {
-    return FutureBuilder<List<Map<String, dynamic>>>(
-      future: _fetchWeeklySalesData(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const CircularProgressIndicator();
-        } else if (snapshot.hasError) {
-          return Text('Erro: ${snapshot.error}');
-        } else if (snapshot.data == null || snapshot.data!.isEmpty) {
-          return const Text('Nenhum dado disponível.');
-        } else {
-          final weeklySalesData = snapshot.data!;
-          return _buildLineChart(weeklySalesData);
-        }
-      },
-    );
+
+
+  Future<Map<String, double>> _fetchSellerContributions() async {
+    QuerySnapshot snapshot =
+    await FirebaseFirestore.instance.collection('contracts').get();
+
+    Map<String, double> sellerContributions = {};
+
+    for (var doc in snapshot.docs) {
+      String sellerId = doc['sellerId'];
+      double amount = doc['amount']?.toDouble() ?? 0.0;
+
+      sellerContributions[sellerId] =
+          (sellerContributions[sellerId] ?? 0) + amount;
+    }
+
+    return sellerContributions;
   }
 
+  Future<Map<String, double>> _fetchCommissions() async {
+    QuerySnapshot snapshot =
+    await FirebaseFirestore.instance.collection('contracts').get();
+
+    Map<String, double> sellerCommissions = {};
+
+    for (var doc in snapshot.docs) {
+      String sellerId = doc['sellerId'];
+      double amount = doc['amount']?.toDouble() ?? 0.0;
+      String paymentMethod = doc['paymentMethod'];
+
+      double commissionRate = 0.0;
+      if (paymentMethod == 'Cartão') {
+        commissionRate = (doc['installments'] ?? 0) >= 8 ? 0.25 : 0.20;
+      } else if (paymentMethod == 'Boleto') {
+        commissionRate = (doc['installments'] ?? 0) >= 8 ? 0.15 : 0.12;
+      } else {
+        commissionRate = 0.10; // Outros métodos
+      }
+
+      double commission = amount * commissionRate;
+
+      sellerCommissions[sellerId] =
+          (sellerCommissions[sellerId] ?? 0) + commission;
+    }
+
+    return sellerCommissions;
+  }
 
 
   Future<List<Map<String, dynamic>>> _fetchWeeklySalesData() async {
     try {
       QuerySnapshot snapshot =
-      await FirebaseFirestore.instance.collection('contracts').get();
+          await FirebaseFirestore.instance.collection('contracts').get();
 
       Map<int, double> weeklySales = {}; // Total por semana
 
       for (var doc in snapshot.docs) {
-        // Verifica se os campos necessários existem e não são nulos
-        if (doc['startDate'] != null && doc['feeMensal'] != null) {
-          DateTime startDate = (doc['startDate'] as Timestamp).toDate();
-          double feeMensal = doc['feeMensal']?.toDouble() ?? 0.0;
+        // Faz o cast seguro para Map<String, dynamic>
+        final data = doc.data() as Map<String, dynamic>?;
+
+        if (data != null) {
+          DateTime startDate = (data['startDate'] as Timestamp).toDate();
+          double feeMensal =
+              data.containsKey('feeMensal') && data['feeMensal'] != null
+                  ? data['feeMensal'].toDouble()
+                  : 0.0; // Define como 0.0 se o campo não existir ou for nulo
 
           // Distribui o feeMensal para cada semana do contrato até a semana atual
           for (int week = _getWeekOfYear(startDate);
-          week <= _getWeekOfYear(DateTime.now());
-          week++) {
+              week <= _getWeekOfYear(DateTime.now());
+              week++) {
             weeklySales[week] = (weeklySales[week] ?? 0) + feeMensal;
+          }
+
+          // Log para verificar os dados
+          print('Document data: $data');
+          if (data.containsKey('feeMensal')) {
+            print('feeMensal: ${data['feeMensal']}');
           }
         }
       }
@@ -325,6 +366,133 @@ class HomePage extends StatelessWidget {
     }
   }
 
+  Widget _buildSellerPerformanceCard() {
+    return FutureBuilder<Map<String, double>>(
+      future: _fetchSellerContributions(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const CircularProgressIndicator();
+        } else if (snapshot.hasError) {
+          return const Text('Erro ao carregar contribuições.');
+        } else {
+          final contributions = snapshot.data!;
+          return FutureBuilder<Map<String, String>>(
+            future: _fetchSellerNames(),
+            builder: (context, nameSnapshot) {
+              if (nameSnapshot.connectionState == ConnectionState.waiting) {
+                return const CircularProgressIndicator();
+              } else if (nameSnapshot.hasError) {
+                return const Text('Erro ao carregar nomes.');
+              } else {
+                final sellerNames = nameSnapshot.data!;
+                final sortedContributions = contributions.entries.toList()
+                  ..sort((a, b) => b.value.compareTo(a.value));
+
+                return Card(
+                  elevation: 8.0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.0),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Contribuição por Vendedor',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        ...sortedContributions.map((entry) {
+                          String sellerName =
+                              sellerNames[entry.key] ?? 'Desconhecido';
+                          double contribution = entry.value;
+                          return ListTile(
+                            title: Text(sellerName),
+                            subtitle: Text(
+                              'Contribuição: R\$ ${contribution.toStringAsFixed(2)}',
+                            ),
+                          );
+                        }).toList(),
+                      ],
+                    ),
+                  ),
+                );
+              }
+            },
+          );
+        }
+      },
+    );
+  }
+
+  Widget _buildSellerCommissionsCard() {
+    return FutureBuilder<Map<String, double>>(
+      future: _fetchCommissions(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const CircularProgressIndicator();
+        } else if (snapshot.hasError) {
+          return const Text('Erro ao carregar comissões.');
+        } else {
+          final commissions = snapshot.data!;
+          return FutureBuilder<Map<String, String>>(
+            future: _fetchSellerNames(),
+            builder: (context, nameSnapshot) {
+              if (nameSnapshot.connectionState == ConnectionState.waiting) {
+                return const CircularProgressIndicator();
+              } else if (nameSnapshot.hasError) {
+                return const Text('Erro ao carregar nomes.');
+              } else {
+                final sellerNames = nameSnapshot.data!;
+                final sortedCommissions = commissions.entries.toList()
+                  ..sort((a, b) => b.value.compareTo(a.value));
+
+                return Card(
+                  elevation: 8.0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12.0),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Comissões por Vendedor',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        ...sortedCommissions.map((entry) {
+                          String sellerName =
+                              sellerNames[entry.key] ?? 'Desconhecido';
+                          double commission = entry.value;
+                          return ListTile(
+                            title: Text(sellerName),
+                            subtitle: Text(
+                              'Comissão: R\$ ${commission.toStringAsFixed(2)}',
+                            ),
+                          );
+                        }).toList(),
+                      ],
+                    ),
+                  ),
+                );
+              }
+            },
+          );
+        }
+      },
+    );
+  }
+
+
 
   // Função para calcular a semana do ano
   int _getWeekOfYear(DateTime date) {
@@ -333,11 +501,10 @@ class HomePage extends StatelessWidget {
     return (daysSinceFirstDay / 7).ceil();
   }
 
-
   Widget _buildLineChart(List<Map<String, dynamic>> salesData) {
     double maxY = salesData
-        .map((e) => e['amount'] as double)
-        .reduce((a, b) => a > b ? a : b) +
+            .map((e) => e['amount'] as double)
+            .reduce((a, b) => a > b ? a : b) +
         10;
 
     return SizedBox(
@@ -402,7 +569,6 @@ class HomePage extends StatelessWidget {
     return 'Sem ${weekNumber.toString()}';
   }
 
-
   Widget _buildResponsiveGrid(Map<String, int> data) {
     return Wrap(
       spacing: 10,
@@ -453,6 +619,24 @@ class HomePage extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildSalesGrowthChart() {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: _fetchWeeklySalesData(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const CircularProgressIndicator();
+        } else if (snapshot.hasError) {
+          return Text('Erro: ${snapshot.error}');
+        } else if (snapshot.data == null || snapshot.data!.isEmpty) {
+          return const Text('Nenhum dado disponível.');
+        } else {
+          final weeklySalesData = snapshot.data!;
+          return _buildLineChart(weeklySalesData);
+        }
+      },
     );
   }
 }

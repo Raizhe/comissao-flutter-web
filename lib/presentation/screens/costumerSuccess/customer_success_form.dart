@@ -1,25 +1,26 @@
-import 'package:comissao_flutter_web/presentation/screens/seller/controllers/seller_controller.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-class SellerFormPage extends StatelessWidget {
-  SellerFormPage({super.key});
+import 'customer_success_controller.dart';
 
-  final SellerController controller = Get.put(SellerController());
+class CustomerSuccessFormPage extends StatelessWidget {
+  CustomerSuccessFormPage({super.key});
+
+  final CustomerSuccessController controller = Get.put(CustomerSuccessController());
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFEFEFEF),
       appBar: AppBar(
-        title: const Text('Cadastrar Vendedor'),
+        title: const Text('Cadastrar Customer Success'),
       ),
       body: Center(
         child: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: SizedBox(
-              width: 600, // Card mais estreito e centralizado
+              width: 600, // Card mais estreito para centralizar a interface
               child: Card(
                 elevation: 8.0,
                 shape: RoundedRectangleBorder(
@@ -31,7 +32,7 @@ class SellerFormPage extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       const Text(
-                        'Cadastro de Vendedor',
+                        'Cadastro de Customer Success',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 28,
@@ -39,7 +40,7 @@ class SellerFormPage extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 24),
-                      _buildFormGrid(), // Grade de campos do formulário
+                      _buildFormGrid(), // Grade de campos de texto
                       const SizedBox(height: 24),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
@@ -48,7 +49,7 @@ class SellerFormPage extends StatelessWidget {
                             borderRadius: BorderRadius.circular(12.0),
                           ),
                         ),
-                        onPressed: controller.addSeller, // Função de adicionar vendedor
+                        onPressed: controller.addCustomerSuccess,
                         child: const Text(
                           'Cadastrar',
                           style: TextStyle(fontSize: 18),
@@ -76,21 +77,26 @@ class SellerFormPage extends StatelessWidget {
         mainAxisSpacing: 16,
       ),
       children: [
-        _buildTextField(controller.nameController, 'Nome do Vendedor'),
+        _buildTextField(controller.nameController, 'Nome'),
+        _buildTextField(controller.emailController, 'Email', TextInputType.emailAddress),
         _buildTextField(
-          controller.emailController,
-          'Email',
-          TextInputType.emailAddress,
+          controller.createdAtController,
+          'Data de Criação',
+          TextInputType.datetime,
+          true, // Define o campo como somente leitura
         ),
       ],
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String label,
-      [TextInputType? type]) {
-    return TextField(
+
+  Widget _buildTextField(
+      TextEditingController controller, String label,
+      [TextInputType? type, bool readOnly = false]) {
+    return TextFormField(
       controller: controller,
       keyboardType: type,
+      readOnly: readOnly,
       decoration: InputDecoration(
         labelText: label,
         border: OutlineInputBorder(
@@ -99,4 +105,5 @@ class SellerFormPage extends StatelessWidget {
       ),
     );
   }
+
 }

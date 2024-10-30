@@ -5,12 +5,12 @@ class ContractModel {
   final String clientCNPJ;
   final String clientName;
   final String sellerId;
-  final String? operadorId; // Opcional
+  final String? operadorId;
   final String preSellerId;
   final String type;
   final double amount;
   final DateTime startDate;
-  final DateTime? endDate; // Opcional
+  final DateTime? endDate;
   final String status;
   final DateTime createdAt;
   final String paymentMethod;
@@ -25,18 +25,19 @@ class ContractModel {
   final String observacoes;
   final double feeMensal;
   final String costumerSuccess;
+  late final double commission; // Adicionar campo de comissão calculada
 
   ContractModel({
     required this.contractId,
     required this.clientCNPJ,
     required this.clientName,
     required this.sellerId,
-    this.operadorId, // Opcional
+    this.operadorId,
     required this.preSellerId,
     required this.type,
     required this.amount,
     required this.startDate,
-    this.endDate, // Opcional
+    this.endDate,
     required this.status,
     required this.createdAt,
     required this.paymentMethod,
@@ -51,9 +52,24 @@ class ContractModel {
     required this.observacoes,
     required this.feeMensal,
     required this.costumerSuccess,
+    required this.commission, // Novo campo
   });
 
-  /// Converte um documento Firestore para um objeto `ContractModel`
+  // Lógica para calcular comissão baseada na forma de pagamento e outras regras
+  double calculateCommission() {
+    double commissionRate;
+
+    if (paymentMethod == 'Cartão') {
+      commissionRate = installments >= 8 ? 0.25 : 0.2;
+    } else if (paymentMethod == 'Boleto') {
+      commissionRate = installments >= 8 ? 0.15 : 0.12;
+    } else {
+      commissionRate = 0.10; // Débito e outros métodos
+    }
+
+    return amount * commissionRate;
+  }
+
   factory ContractModel.fromFirestore(Map<String, dynamic> data) {
     return ContractModel(
       contractId: data['contractId'] ?? '',
@@ -63,7 +79,7 @@ class ContractModel {
       operadorId: data['operadorId'],
       preSellerId: data['preSellerId'] ?? '',
       type: data['type'] ?? '',
-      amount: (data['amount'] ?? 0).toDouble(), // Tratando valor nulo
+      amount: (data['amount'] ?? 0).toDouble(),
       startDate: (data['startDate'] as Timestamp).toDate(),
       endDate: data['endDate'] != null
           ? (data['endDate'] as Timestamp).toDate()
@@ -71,7 +87,7 @@ class ContractModel {
       status: data['status'] ?? '',
       createdAt: (data['createdAt'] as Timestamp).toDate(),
       paymentMethod: data['paymentMethod'] ?? '',
-      installments: (data['installments'] ?? 0).toInt(), // Tratando valor nulo
+      installments: (data['installments'] ?? 0).toInt(),
       renewalType: data['renewalType'] ?? '',
       salesOrigin: data['salesOrigin'] ?? '',
       address: data['address'] ?? '',
@@ -80,13 +96,12 @@ class ContractModel {
       emailFinanceiro: data['emailFinanceiro'] ?? '',
       telefone: data['telefone'] ?? '',
       observacoes: data['observacoes'] ?? '',
-      feeMensal: (data['feeMensal'] ?? 0).toDouble(), // Tratando valor nulo
-      costumerSuccess: data['costumerSuccess'] ?? '', // Tratando valor nulo
+      feeMensal: (data['feeMensal'] ?? 0).toDouble(),
+      costumerSuccess: data['costumerSuccess'] ?? '',
+      commission: (data['commission'] ?? 0).toDouble(),
     );
   }
 
-
-  /// Converte o objeto `ContractModel` para um mapa compatível com Firestore
   Map<String, dynamic> toFirestore() {
     return {
       'contractId': contractId,
@@ -113,6 +128,7 @@ class ContractModel {
       'observacoes': observacoes,
       'feeMensal': feeMensal,
       'costumerSuccess': costumerSuccess,
+      'commission': commission, // Incluindo a comissão no Firestore
     };
   }
 }

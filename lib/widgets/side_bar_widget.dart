@@ -7,7 +7,7 @@ const Color secondaryColor = Color(0xFF090742); // Ajuste com o valor exato se n
 class SidebarWidget extends StatelessWidget {
   final String role;
 
-  const SidebarWidget({Key? key, required this.role}) : super(key: key);
+  const SidebarWidget({super.key, required this.role});
 
   @override
   Widget build(BuildContext context) {
@@ -64,6 +64,12 @@ class SidebarWidget extends StatelessWidget {
                   text: 'Operadores',
                   route: '/operator_form',
                 ),
+                _buildDrawerItem(
+                  icon: Icons.support_agent,
+                  text: 'CS',
+                  route: '/customer_success_form',
+                ),
+
               ],
               if (role == 'seller' || role == 'pre_seller') ...[
                 _buildDrawerItem(
