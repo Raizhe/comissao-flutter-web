@@ -23,9 +23,8 @@ class _PreSellerFormPageState extends State<PreSellerFormPage> {
         preSellerId: preSellerId,
         name: _nameController.text,
         email: _emailController.text,
-        commissionRate: 0.25, // Taxa de comissão padrão
+        comissao: 0.25, // Taxa de comissão padrão
         createdAt: DateTime.now(),
-        clients: [],
       );
 
       // Adicionar pré-vendedor ao Firestore

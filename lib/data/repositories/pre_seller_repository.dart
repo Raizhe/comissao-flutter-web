@@ -2,7 +2,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/pre_seller_model.dart';
 
 class PreSellerRepository {
-  final CollectionReference preSellersRef = FirebaseFirestore.instance.collection('pre_sellers');
+  final CollectionReference preSellersRef =
+  FirebaseFirestore.instance.collection('pre_sellers');
 
   // Adicionar um novo pré-vendedor
   Future<void> addPreSeller(PreSellerModel preSeller) async {
@@ -23,10 +24,14 @@ class PreSellerRepository {
   }
 
   // Obter um pré-vendedor pelo ID
-  Future<PreSellerModel> getPreSeller(String preSellerId) async {
+  Future<PreSellerModel?> getPreSeller(String preSellerId) async {
     try {
-      DocumentSnapshot doc = await preSellersRef.doc(preSellerId).get();
-      return PreSellerModel.fromMap(doc.data() as Map<String, dynamic>);
+      final doc = await preSellersRef.doc(preSellerId).get();
+      if (doc.exists) {
+        return PreSellerModel.fromMap(doc.data() as Map<String, dynamic>);
+      } else {
+        return null;
+      }
     } catch (e) {
       throw Exception('Erro ao buscar pré-vendedor: $e');
     }
@@ -38,6 +43,18 @@ class PreSellerRepository {
       await preSellersRef.doc(preSellerId).delete();
     } catch (e) {
       throw Exception('Erro ao deletar pré-vendedor: $e');
+    }
+  }
+
+  // Buscar todos os pré-vendedores
+  Future<List<PreSellerModel>> getAllPreSellers() async {
+    try {
+      final snapshot = await preSellersRef.get();
+      return snapshot.docs.map((doc) {
+        return PreSellerModel.fromMap(doc.data() as Map<String, dynamic>);
+      }).toList();
+    } catch (e) {
+      throw Exception('Erro ao buscar pré-vendedores: $e');
     }
   }
 }

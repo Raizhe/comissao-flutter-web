@@ -4,12 +4,14 @@ import 'package:comissao_flutter_web/presentation/screens/clients/clients_page.d
 import 'package:comissao_flutter_web/presentation/screens/contract/contract_form_page.dart';
 import 'package:comissao_flutter_web/presentation/screens/contract/contracts_details_page.dart';
 import 'package:comissao_flutter_web/presentation/screens/contract/contracts_page.dart';
+import 'package:comissao_flutter_web/presentation/screens/costumerSuccess/customer_success_form.dart';
 import 'package:comissao_flutter_web/presentation/screens/leads/leads_form_page.dart';
 import 'package:comissao_flutter_web/presentation/screens/leads/leads_page.dart';
 import 'package:comissao_flutter_web/presentation/screens/meet/meet_page.dart';
 import 'package:comissao_flutter_web/presentation/screens/pre_seller/pre_seller_form_page.dart';
 import 'package:comissao_flutter_web/presentation/screens/seller/seller_form_page.dart';
 import 'package:comissao_flutter_web/presentation/screens/user/user_form_page.dart';
+import 'package:comissao_flutter_web/presentation/screens/operator/operator_form_page.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:get/get.dart';
@@ -37,7 +39,6 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.indigo,
       ),
       initialRoute: '/',
-      // Define a rota inicial como '/'
       getPages: [
         GetPage(name: '/', page: () => const AuthenticationWrapper()),
         GetPage(name: '/login', page: () => const LoginPage()),
@@ -48,11 +49,13 @@ class MyApp extends StatelessWidget {
         GetPage(name: '/seller_form', page: () => SellerFormPage()),
         GetPage(name: '/user_form', page: () => UserFormPage()),
         GetPage(name: '/contract_form', page: () => const ContractFormPage()),
-        GetPage(name: '/lead_form', page: () =>  LeadFormPage()),
+        GetPage(name: '/lead_form', page: () => const LeadFormPage()),
         GetPage(name: '/leads_page', page: () => const LeadsPage()),
-        GetPage(name: '/contracts_page', page: () => ContractsPage()),
+        GetPage(name: '/contracts_page', page: () => const ContractsPage()),
         GetPage(name: '/clients_page', page: () => const ClientsPage()),
         GetPage(name: '/meet_page', page: () => const MeetPage()),
+        GetPage(name: '/operator_form', page: () => OperatorFormPage()),
+        GetPage(name: '/customer_success_form', page: () => CustomerSuccessFormPage()),
         GetPage(
           name: '/client_details',
           page: () => ClientDetailsPage(
@@ -62,7 +65,8 @@ class MyApp extends StatelessWidget {
         GetPage(
           name: '/contracts_details',
           page: () => ContractDetailsPage(
-            contract: Get.arguments, sellerName: '',
+            contract: Get.arguments,
+            sellerName: '',
           ),
         ),
       ],
@@ -80,7 +84,6 @@ class AuthenticationWrapper extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.active) {
           User? user = snapshot.data;
-          // Verifica se o usuário está autenticado
           if (user == null) {
             return LoginPage();
           } else {

@@ -17,9 +17,8 @@ class PreSellerController extends GetxController {
         preSellerId: preSellerId,
         name: nameController.text.trim(),
         email: emailController.text.trim(),
-        commissionRate: double.parse(commissionRateController.text.trim()),
+        comissao: double.parse(commissionRateController.text.trim()),
         createdAt: DateTime.now(),
-        clients: [],
       );
       await preSellerRepository.addPreSeller(preSeller);
       Get.back(); // Voltar para a página anterior
