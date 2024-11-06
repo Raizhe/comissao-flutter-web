@@ -39,9 +39,10 @@ class _ContractFormPageState extends State<ContractFormPage> {
   final _bairroController = TextEditingController();
   final _cidadeController = TextEditingController();
   final _estadoController = TextEditingController();
-  final _telefoneController = TextEditingController();
+  final _telefoneController = MaskedTextController(mask: '(00) 0000-0000');
   final _emailFinanceiroController = TextEditingController();
   final _representanteController = TextEditingController();
+
   final _cpfRepresentanteController =
       MaskedTextController(mask: '000.000.000-00');
   final _valorController = MoneyMaskedTextController(
@@ -56,22 +57,59 @@ class _ContractFormPageState extends State<ContractFormPage> {
   final _feeMensalController = TextEditingController();
   final _observacoesController = TextEditingController();
 
-  double _calcularComissao(double valor, String metodoPagamento, int parcelas) {
-    double taxaComissao;
+  double percentualMeta = 100.0;
+  String type = 'MRR'; // Inicialize com um valor padrão
 
-    if (metodoPagamento == 'Cartão') {
-      taxaComissao = parcelas >= 8 ? 0.25 : 0.20;
-    } else if (metodoPagamento == 'Boleto') {
-      taxaComissao = parcelas >= 8 ? 0.15 : 0.12;
+  double calculateCommission(double feeMensal, String metodoPagamento, double percentualMeta, bool isParcelado) {
+    // Tabela de comissão com listas de taxas específicas
+    final Map<String, Map<String, List<double>>> comissaoTabela = {
+      'MRR': {
+        'Cartão': [0.0, 0.16, 0.18, 0.20, 0.25],
+        'BoletoPix': [0.0, 0.08, 0.10, 0.12, 0.16],
+      },
+      'Pontual': {
+        'CartãoParcelado': [0.0, 0.12, 0.14, 0.16, 0.20],
+        'CartãoAVista': [0.0, 0.06, 0.08, 0.10, 0.14],
+        'BoletoPixParcelado': [0.0, 0.06, 0.08, 0.10, 0.14],
+        'BoletoPixAVista': [0.0, 0.12, 0.14, 0.16, 0.20],
+      }
+    };
+
+    // Determina a faixa de meta
+    int faixaMeta;
+    if (percentualMeta < 50) {
+      faixaMeta = 0;
+    } else if (percentualMeta < 80) {
+      faixaMeta = 1;
+    } else if (percentualMeta < 100) {
+      faixaMeta = 2;
+    } else if (percentualMeta <= 120) {
+      faixaMeta = 3;
     } else {
-      taxaComissao = 0.10; // Outros métodos
+      faixaMeta = 4;
     }
 
-    return valor * taxaComissao;
+    // Seleção do método de pagamento correto
+    String chaveMetodo = metodoPagamento;
+    if (type == 'Pontual') {
+      if (metodoPagamento == 'Cartão') {
+        chaveMetodo = isParcelado ? 'CartãoParcelado' : 'CartãoAVista';
+      } else if (metodoPagamento == 'BoletoPix') {
+        chaveMetodo = isParcelado ? 'BoletoPixParcelado' : 'BoletoPixAVista';
+      }
+    }
+
+    // Verifica se o tipo de contrato e o método de pagamento estão no mapa
+    if (comissaoTabela.containsKey(type) &&
+        comissaoTabela[type]!.containsKey(chaveMetodo)) {
+      final taxas = comissaoTabela[type]![chaveMetodo]!;
+      final taxaComissao = taxas[faixaMeta];
+      return feeMensal * taxaComissao;
+    } else {
+      // Caso o tipo ou método não esteja na tabela, retorna comissão zero
+      return 0.0;
+    }
   }
-
-
-
 
   String? _tipoContrato;
   String? _formaPagamento;
@@ -98,23 +136,8 @@ class _ContractFormPageState extends State<ContractFormPage> {
     _fetchOperators();
     Get.put(ContractController());
   }
-  //
-  // double _calcularComissao(double valor, String metodoPagamento, int parcelas) {
-  //   double taxaComissao;
-  //
-  //   if (metodoPagamento == 'Cartão') {
-  //     taxaComissao = parcelas >= 8 ? 0.25 : 0.20;
-  //   } else if (metodoPagamento == 'Boleto') {
-  //     taxaComissao = parcelas >= 8 ? 0.15 : 0.12;
-  //   } else {
-  //     taxaComissao = 0.10; // Outros métodos
-  //   }
-  //
-  //   return valor * taxaComissao;
-  // }
 
-
-// Função para buscar vendedores
+  // Função para buscar vendedores
   Future<void> _fetchSellers() async {
     try {
       final snapshot =
@@ -128,7 +151,7 @@ class _ContractFormPageState extends State<ContractFormPage> {
     }
   }
 
-// Função para buscar pré-vendedores
+  // Função para buscar pré-vendedores
   Future<void> _fetchPreSellers() async {
     try {
       final snapshot =
@@ -143,7 +166,7 @@ class _ContractFormPageState extends State<ContractFormPage> {
     }
   }
 
-// Função para buscar operadores
+  // Função para buscar operadores
   Future<void> _fetchOperators() async {
     try {
       final snapshot =
@@ -225,7 +248,6 @@ class _ContractFormPageState extends State<ContractFormPage> {
                     const SizedBox(height: 25),
 
                     Card(
-
                       elevation: 8.0,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20.0),
@@ -237,49 +259,67 @@ class _ContractFormPageState extends State<ContractFormPage> {
                           child: GridView(
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
-                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 3, // 3 colunas
-                              crossAxisSpacing: 16.0, // Espaço horizontal entre os campos
-                              mainAxisSpacing: 16.0, // Espaço vertical entre os campos
-                              childAspectRatio: 2.5, // Ajuste da proporção dos campos
+                            gridDelegate:
+                                const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 3,
+                              // 3 colunas
+                              crossAxisSpacing: 16.0,
+                              // Espaço horizontal entre os campos
+                              mainAxisSpacing: 16.0,
+                              // Espaço vertical entre os campos
+                              childAspectRatio:
+                                  2.5, // Ajuste da proporção dos campos
                             ),
                             children: [
-                              _buildTextField(_razaoSocialController, 'Razão Social'),
-                              _buildTextField(_cnpjController, 'CNPJ', TextInputType.number),
+                              _buildTextField(
+                                  _razaoSocialController, 'Razão Social'),
+                              _buildTextField(_cnpjController, 'CNPJ',
+                                  TextInputType.number),
                               _buildCepField(),
-                              _buildTextField(_logradouroController, 'Logradouro'),
-                              _buildTextField(_numeroController, 'Número', TextInputType.number),
-                              _buildTextField(_complementoController, 'Complemento'),
+                              _buildTextField(
+                                  _logradouroController, 'Logradouro'),
+                              _buildTextField(_numeroController, 'Número',
+                                  TextInputType.number),
+                              _buildTextField(
+                                  _complementoController, 'Complemento'),
                               _buildTextField(_bairroController, 'Bairro'),
                               _buildTextField(_cidadeController, 'Cidade'),
                               _buildTextField(_estadoController, 'Estado'),
-                              _buildTextField(_telefoneController, 'Telefone', TextInputType.phone),
-                              _buildTextField(_emailFinanceiroController, 'E-mail Financeiro', TextInputType.emailAddress),
-                              _buildTextField(_representanteController, 'Representante Legal'),
-                              _buildTextField(_cpfRepresentanteController, 'CPF Representante'),
+                              _buildTelefoneField(),
+                              _buildTextField(
+                                  _emailFinanceiroController,
+                                  'E-mail Financeiro',
+                                  TextInputType.emailAddress),
+                              _buildTextField(_representanteController,
+                                  'Representante Legal'),
+                              _buildTextField(_cpfRepresentanteController,
+                                  'CPF Representante'),
                               _buildTipoContratoDropdown(),
-                              _buildTextField(_valorController, 'Valor', TextInputType.number),
+                              _buildTextField(_valorController, 'Valor',
+                                  TextInputType.number),
                               _buildParcelasField(),
                               _buildFeeMensalField(),
                               _buildFormaPagamentoDropdown(),
-                              _buildSellerDropdown(), // Dropdown Vendedor
-                              _buildPreSellerDropdown(), // Dropdown Pré-vendedor
-                              _buildOperatorDropdown(), // Dropdown Operador
-                              _buildSalesOriginDropdown(), // Origem da Venda
-                              _buildRenewalTypeDropdown(), // Tipo de Renovação
+                              _buildSellerDropdown(),
+                              // Dropdown Vendedor
+                              _buildPreSellerDropdown(),
+                              // Dropdown Pré-vendedor
+                              _buildOperatorDropdown(),
+                              // Dropdown Operador
+                              _buildSalesOriginDropdown(),
+                              // Origem da Venda
+                              _buildRenewalTypeDropdown(),
+                              // Tipo de Renovação
                               _buildEndDatePicker(),
                             ],
-
                           ),
-
                         ),
-
                       ),
                     ),
                     ElevatedButton(
                       onPressed: _submitForm,
                       child: const Text('Cadastrar Contrato'),
-                    ),// Data de Fim
+                    ), // Data de Fim
                   ],
                 );
               },
@@ -287,6 +327,20 @@ class _ContractFormPageState extends State<ContractFormPage> {
           ),
         ),
       ),
+    );
+  }
+
+  // Campo de Telefone com máscara
+  Widget _buildTelefoneField() {
+    return TextFormField(
+      controller: _telefoneController,
+      decoration: const InputDecoration(
+        labelText: 'Telefone',
+        border: OutlineInputBorder(),
+      ),
+      keyboardType: TextInputType.phone,
+      validator: (value) =>
+      value == null || value.isEmpty ? 'Campo obrigatório' : null,
     );
   }
 
@@ -315,7 +369,6 @@ class _ContractFormPageState extends State<ContractFormPage> {
     );
   }
 
-
   Widget _buildRenewalTypeDropdown() {
     return DropdownButtonFormField<String>(
       decoration: const InputDecoration(labelText: 'Tipo de Renovação'),
@@ -330,9 +383,6 @@ class _ContractFormPageState extends State<ContractFormPage> {
     );
   }
 
-
-
-
   Widget _buildSalesOriginDropdown() {
     return DropdownButtonFormField<String>(
       decoration: const InputDecoration(labelText: 'Origem da Venda'),
@@ -346,7 +396,6 @@ class _ContractFormPageState extends State<ContractFormPage> {
       },
     );
   }
-
 
   Widget _buildSellerDropdown() {
     return DropdownButtonFormField<String>(
@@ -439,7 +488,7 @@ class _ContractFormPageState extends State<ContractFormPage> {
     );
   }
 
-// Método para construir o campo de Fee Mensal (apenas leitura)
+  // Método para construir o campo de Fee Mensal (apenas leitura)
   Widget _buildFeeMensalField() {
     return TextFormField(
       controller: _feeMensalController,
@@ -451,7 +500,7 @@ class _ContractFormPageState extends State<ContractFormPage> {
     );
   }
 
-// Função para calcular o Fee Mensal com base no valor e no número de parcelas
+  // Função para calcular o Fee Mensal com base no valor e no número de parcelas
   void _calcularFeeMensal() {
     final valor = _valorController.numberValue;
     final parcelas = int.tryParse(_parcelasController.text) ?? 1;
@@ -522,12 +571,12 @@ class _ContractFormPageState extends State<ContractFormPage> {
   Widget _buildFormaPagamentoDropdown() {
     return DropdownButtonFormField<String>(
       decoration: const InputDecoration(labelText: 'Forma de Pagamento'),
-      items: ['Crédito', 'Débito', 'Boleto'].map((method) {
+      items: ['Crédito', 'Débito', 'Pix', 'Boleto'].map((method) {
         return DropdownMenuItem(value: method, child: Text(method));
       }).toList(),
       onChanged: (value) {
         setState(() {
-          _formaPagamento = value;
+          _formaPagamento = value; // Atualiza o valor de _formaPagamento
         });
       },
     );
@@ -547,94 +596,58 @@ class _ContractFormPageState extends State<ContractFormPage> {
               border: OutlineInputBorder(),
             ),
             validator: (value) =>
-            value == null || value.isEmpty ? 'Campo obrigatório' : null,
+                value == null || value.isEmpty ? 'Campo obrigatório' : null,
           ),
         );
       },
     );
   }
 
-
   void _submitForm() async {
     if (_formKey.currentState!.validate()) {
       try {
         final double valorTotal = _valorController.numberValue;
-
-        // Verificação se o valor é válido
-        if (valorTotal <= 0) {
-          Get.snackbar('Erro', 'O valor deve ser maior que zero.');
-          return;
-        }
-
-        // Garantir que os IDs obrigatórios estão preenchidos
-        if (_selectedSellerId == null) {
-          Get.snackbar('Erro', 'Selecione um vendedor.');
-          return;
-        }
-        if (_selectedSellerId == null) {
-          Get.snackbar('Erro', 'Selecione um vendedor.');
-          return;
-        }
-        if (_selectedPreSellerId == null) {
-          Get.snackbar('Erro', 'Selecione um um pre vendedor.');
-          return;
-        }
-
-        // Cálculo seguro do fee mensal
         final int numeroParcelas = int.tryParse(_parcelasController.text) ?? 1;
-        final double feeMensal =
-            numeroParcelas > 0 ? valorTotal / numeroParcelas : valorTotal;
-        // Cálculo seguro do fee mensal
-        // Cálculo da comissão
-        final double comissao = _calcularComissao(
-          valorTotal,
+        final double feeMensal = valorTotal / numeroParcelas;
+
+        final double comissao = calculateCommission(
+          feeMensal,
           _formaPagamento ?? 'Crédito',
-          numeroParcelas,
+          percentualMeta,
+          numeroParcelas > 1,
         );
 
-        // Criação do contrato com dados válidos
         final contract = ContractModel(
           contractId: Uuid().v4(),
           clientCNPJ: _cnpjController.text.trim(),
           clientName: _razaoSocialController.text.trim(),
-          address: "${_logradouroController.text.trim()}, "
-              "${_numeroController.text.trim()}, "
-              "${_complementoController.text.trim()}, "
-              "${_bairroController.text.trim()}, "
-              "${_cidadeController.text.trim()} - "
-              "${_estadoController.text.trim()} - "
-              "${_cepController.text.trim()}",
-          telefone: _telefoneController.text.trim(),
-          emailFinanceiro: _emailFinanceiroController.text.trim(),
-          representanteLegal: _representanteController.text.trim(),
-          cpfRepresentante: _cpfRepresentanteController.text.trim(),
-          type: _tipoContrato ?? 'Fee Mensal',
-          amount: valorTotal,
-          installments: numeroParcelas,
-          feeMensal: feeMensal,
-          paymentMethod: _formaPagamento ?? 'Crédito',
           sellerId: _selectedSellerId!,
-          preSellerId: _selectedPreSellerId!,
           operadorId: _selectedOperatorId,
-          observacoes: _observacoesController.text.trim(),
-          createdAt: DateTime.now(),
-          status: 'ativo',
+          preSellerId: _selectedPreSellerId!,
+          type: type,
+          amount: valorTotal,
           startDate: DateTime.now(),
           endDate: null,
-          renewalType: 'Manual',
-          salesOrigin: 'Inbound',
+          status: 'ativo',
+          createdAt: DateTime.now(),
+          paymentMethod: _formaPagamento ?? 'Crédito',
+          installments: numeroParcelas,
+          renewalType: _renewalType ?? 'Manual',
+          salesOrigin: _salesOrigin ?? 'Inbound',
+          address: "${_logradouroController.text.trim()}, ${_numeroController.text.trim()}, ${_complementoController.text.trim()}, ${_bairroController.text.trim()}, ${_cidadeController.text.trim()} - ${_estadoController.text.trim()} - ${_cepController.text.trim()}",
+          representanteLegal: _representanteController.text.trim(),
+          cpfRepresentante: _cpfRepresentanteController.text.trim(),
+          emailFinanceiro: _emailFinanceiroController.text.trim(),
+          telefone: _telefoneController.text.trim(),
+          observacoes: _observacoesController.text.trim(),
+          feeMensal: feeMensal,
           costumerSuccess: 'Exemplo de Cs',
           commission: comissao,
         );
 
-
-
-        contract.commission = contract.calculateCommission();
-        // Tentativa de salvar no Firestore
         await Get.find<ContractController>().addContract(contract);
-
         Get.snackbar('Sucesso', 'Contrato cadastrado com sucesso!');
-        Get.offAllNamed('/home'); // Redireciona para a home após sucesso
+        Get.offAllNamed('/home');
       } catch (e) {
         Get.snackbar('Erro', 'Erro ao cadastrar contrato: $e');
       }
@@ -642,6 +655,4 @@ class _ContractFormPageState extends State<ContractFormPage> {
       Get.snackbar('Erro', 'Por favor, preencha todos os campos obrigatórios.');
     }
   }
-
-
 }

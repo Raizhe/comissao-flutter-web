@@ -2,83 +2,111 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ClientModel {
   String clientId;
-  String clientName;
-  String companyName;
-  String? clientEmail;
-  String? phone;
-  String? cellPhone;
-  String? website;
-  String? address;
-  String? stateInscription;
-  String? municipalInscription;
-  String? projectModel;
-  String? preSellerId;
-  String? sellerId;
+  String nome;
+  String cpfcnpj;
+  String? inscricaoEstadual;
+  String? email;
+  String? telefone;
+  String? rua;
+  String? numero;
+  String? complemento;
+  String? bairro;
+  String? cidade;
+  String? estado;
+  String? cep;
+  String? pais;
+  int? codigoProduto;
+  String? nomeProduto;
+  String? valorUnitario;
+  int? quantidade;
+  int? ncm;
+  int? natureza;
+  int? codigoVenda;
+  int? dataVenda;
+  int? dataRetroativa;
+  DateTime? dataVencimentoPagamento; // Novo campo para data de vencimento
   List<String> contracts;
   DateTime registeredAt;
   String situation;
-  String? group;
-  String? cnpj;
-  String? cpf;
+  bool reminderAcknowledged; // Novo campo para controle de lembretes
 
   ClientModel({
     required this.clientId,
-    required this.clientName,
-    required this.companyName,
-    this.clientEmail,
-    this.phone,
-    this.cellPhone,
-    this.website,
-    this.address,
-    this.stateInscription,
-    this.municipalInscription,
-    this.projectModel,
-    this.preSellerId,
-    this.sellerId,
+    required this.nome,
+    required this.cpfcnpj,
+    this.inscricaoEstadual,
+    this.email,
+    this.telefone,
+    this.rua,
+    this.numero,
+    this.complemento,
+    this.bairro,
+    this.cidade,
+    this.estado,
+    this.cep,
+    this.pais,
+    this.codigoProduto,
+    this.nomeProduto,
+    this.valorUnitario,
+    this.quantidade,
+    this.ncm,
+    this.natureza,
+    this.codigoVenda,
+    this.dataVenda,
+    this.dataRetroativa,
+    this.dataVencimentoPagamento, // Inicializando o novo campo
     required this.contracts,
     required this.registeredAt,
     required this.situation,
-    this.group,
-    this.cnpj,
-    this.cpf,
+    this.reminderAcknowledged = false, // Inicializa como falso por padrão
   });
 
   // Construtor vazio para evitar erros nulos
   factory ClientModel.empty() {
     return ClientModel(
       clientId: '',
-      clientName: '',
-      companyName: '',
+      nome: '',
+      cpfcnpj: '',
       contracts: [],
       registeredAt: DateTime.now(),
       situation: 'Indefinido',
+      reminderAcknowledged: false,
     );
   }
-
-
 
   // Conversão para JSON
   Map<String, dynamic> toJson() {
     return {
       'clientId': clientId,
-      'clientName': clientName,
-      'companyName': companyName,
-      'clientEmail': clientEmail,
-      'phone': phone,
-      'cellPhone': cellPhone,
-      'website': website,
-      'address': address,
-      'stateInscription': stateInscription,
-      'municipalInscription': municipalInscription,
-      'projectModel': projectModel,
-      'preSellerId': preSellerId,
-      'sellerId': sellerId,
+      'nome': nome,
+      'cpfcnpj': cpfcnpj,
+      'inscricaoEstadual': inscricaoEstadual,
+      'email': email,
+      'telefone': telefone,
+      'rua': rua,
+      'numero': numero,
+      'complemento': complemento,
+      'bairro': bairro,
+      'cidade': cidade,
+      'estado': estado,
+      'cep': cep,
+      'pais': pais,
+      'codigoProduto': codigoProduto,
+      'nomeProduto': nomeProduto,
+      'valorUnitario': valorUnitario,
+      'quantidade': quantidade,
+      'ncm': ncm,
+      'natureza': natureza,
+      'codigoVenda': codigoVenda,
+      'dataVenda': dataVenda,
+      'dataRetroativa': dataRetroativa,
+      'dataVencimentoPagamento': dataVencimentoPagamento != null
+          ? Timestamp.fromDate(dataVencimentoPagamento!)
+          : null, // Salvando a data de vencimento como Timestamp
       'contracts': contracts,
       'registeredAt': registeredAt,
       'situation': situation,
-      'group': group,
-      'cnpj': cnpj,
-      'cpf': cpf,
+      'reminderAcknowledged': reminderAcknowledged, // Adicionando campo ao JSON
     };
   }
 
@@ -86,24 +114,46 @@ class ClientModel {
   factory ClientModel.fromJson(Map<String, dynamic> json) {
     return ClientModel(
       clientId: json['clientId'] ?? '',
-      clientName: json['clientName'] ?? '',
-      companyName: json['companyName'] ?? '',
-      clientEmail: json['clientEmail'],
-      phone: json['phone'],
-      cellPhone: json['cellPhone'],
-      website: json['website'],
-      address: json['address'],
-      stateInscription: json['stateInscription'],
-      municipalInscription: json['municipalInscription'],
-      projectModel: json['projectModel'],
-      preSellerId: json['preSellerId'],
-      sellerId: json['sellerId'],
+      nome: json['nome'] ?? '',
+      cpfcnpj: json['cpfcnpj'] ?? '',
+      inscricaoEstadual: json['inscricaoEstadual'],
+      email: json['email'],
+      telefone: json['telefone'],
+      rua: json['rua'],
+      numero: json['numero'],
+      complemento: json['complemento'],
+      bairro: json['bairro'],
+      cidade: json['cidade'],
+      estado: json['estado'],
+      cep: json['cep'],
+      pais: json['pais'],
+      codigoProduto: json['codigoProduto'],
+      nomeProduto: json['nomeProduto'],
+      valorUnitario: json['valorUnitario'],
+      quantidade: json['quantidade'],
+      ncm: json['ncm'],
+      natureza: json['natureza'],
+      codigoVenda: json['codigoVenda'],
+      dataVenda: json['dataVenda'],
+      dataRetroativa: json['dataRetroativa'],
+      dataVencimentoPagamento: json['dataVencimentoPagamento'] != null
+          ? (json['dataVencimentoPagamento'] as Timestamp).toDate()
+          : null, // Convertendo Timestamp para DateTime
       contracts: List<String>.from(json['contracts'] ?? []),
       registeredAt: (json['registeredAt'] as Timestamp).toDate(),
       situation: json['situation'] ?? 'Indefinido',
-      group: json['group'],
-      cnpj: json['cnpj'],
-      cpf: json['cpf'],
+      reminderAcknowledged: json['reminderAcknowledged'] ?? false, // Define como falso se estiver ausente
     );
+  }
+
+  // Método para gerar lembretes de pagamento
+  List<DateTime> generatePaymentReminders() {
+    if (dataVencimentoPagamento == null) return [];
+
+    return [
+      dataVencimentoPagamento!.subtract(const Duration(days: 5)),
+      dataVencimentoPagamento!.subtract(const Duration(days: 2)),
+      dataVencimentoPagamento!,
+    ];
   }
 }

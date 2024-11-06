@@ -73,6 +73,49 @@ class HomePage extends StatelessWidget {
     }
   }
 
+  Future<List<Map<String, dynamic>>> _fetchUpcomingPayments() async {
+    QuerySnapshot snapshot = await FirebaseFirestore.instance
+        .collection('clients')
+        .where('dataVencimentoPagamento', isNotEqualTo: null)
+        .where('reminderAcknowledged', isEqualTo: false)
+        .get();
+
+    List<Map<String, dynamic>> upcomingPayments = [];
+
+    DateTime now = DateTime.now();
+    for (var doc in snapshot.docs) {
+      final data = doc.data() as Map<String, dynamic>?;
+
+      if (data != null && data.containsKey('dataVencimentoPagamento') &&
+          data['dataVencimentoPagamento'] != null &&
+          data['dataVencimentoPagamento'] is Timestamp) {
+
+        DateTime dueDate = (data['dataVencimentoPagamento'] as Timestamp).toDate();
+
+        if (dueDate.difference(now).inDays <= 5 && dueDate.isAfter(now)) {
+          upcomingPayments.add({
+            'clientId': doc.id, // Usando `doc.id` para o ID do documento
+            'nome': data['nome'] ?? 'Cliente sem nome',
+            'dataVencimentoPagamento': dueDate,
+          });
+        }
+      } else {
+        print("Erro: 'dataVencimentoPagamento' está ausente ou não é Timestamp para o documento ${doc.id}");
+      }
+    }
+
+
+    // Log de depuração
+    print("Total de lembretes encontrados: ${upcomingPayments.length}");
+    for (var payment in upcomingPayments) {
+      print("Lembrete para ${payment['nome']} com vencimento em ${payment['dataVencimentoPagamento']}");
+    }
+
+    return upcomingPayments;
+  }
+
+
+
   @override
   Widget build(BuildContext context) {
     User? user = FirebaseAuth.instance.currentUser;
@@ -111,97 +154,202 @@ class HomePage extends StatelessWidget {
           }
         },
       ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
-          child: FutureBuilder<Map<String, int>>(
-            future: _fetchAllMetrics(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              } else if (snapshot.hasError) {
-                return const Center(child: Text('Erro ao carregar métricas.'));
-              } else {
-                final data = snapshot.data!;
-                return SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      const Text(
-                        'Drop Lead Dashboard',
-                        style: TextStyle(
-                            fontSize: 24, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 30),
-                      _buildResponsiveGrid(data),
-                      const SizedBox(height: 30),
-                      _buildSellerCommissionsCard(),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
+      body: Stack(
+        children: [
+          Center(
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
+              child: FutureBuilder<Map<String, int>>(
+                future: _fetchAllMetrics(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  } else if (snapshot.hasError) {
+                    return const Center(
+                        child: Text('Erro ao carregar métricas.'));
+                  } else {
+                    final data = snapshot.data!;
+                    return SingleChildScrollView(
+                      child: Column(
                         children: [
-                          Column(
-                            children: [
-                              const Text(
-                                'Desempenho dos Vendedores',
-                                style: TextStyle(
-                                    fontSize: 18, fontWeight: FontWeight.bold),
-                              ),
-                              const SizedBox(height: 10),
-                              FutureBuilder<Map<String, int>>(
-                                future: _fetchSellerPerformance(),
-                                builder: (context, snapshot) {
-                                  if (snapshot.connectionState ==
-                                      ConnectionState.waiting) {
-                                    return const CircularProgressIndicator();
-                                  } else if (snapshot.hasError) {
-                                    return const Text(
-                                        'Erro ao carregar desempenho.');
-                                  } else {
-                                    final sellerData = snapshot.data!;
-                                    return FutureBuilder<Map<String, String>>(
-                                      future: _fetchSellerNames(),
-                                      builder: (context, nameSnapshot) {
-                                        if (nameSnapshot.connectionState ==
-                                            ConnectionState.waiting) {
-                                          return const CircularProgressIndicator();
-                                        } else if (nameSnapshot.hasError) {
-                                          return const Text(
-                                              'Erro ao carregar nomes.');
-                                        } else {
-                                          final sellerNames =
-                                              nameSnapshot.data!;
-                                          return _buildPieChart(
-                                              sellerData, sellerNames);
-                                        }
-                                      },
-                                    );
-                                  }
-                                },
-                              ),
-                            ],
+                          const Text(
+                            'Drop Lead Dashboard',
+                            style: TextStyle(
+                                fontSize: 24, fontWeight: FontWeight.bold),
                           ),
-                          const SizedBox(width: 30),
-                          Column(
+                          const SizedBox(height: 30),
+                          _buildResponsiveGrid(data),
+                          const SizedBox(height: 30),
+                          _buildSellerCommissionsCard(),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Text(
-                                'Crescimento vendas',
-                                style: TextStyle(
-                                    fontSize: 18, fontWeight: FontWeight.bold),
+                              Column(
+                                children: [
+                                  const Text(
+                                    'Desempenho dos Vendedores',
+                                    style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  FutureBuilder<Map<String, int>>(
+                                    future: _fetchSellerPerformance(),
+                                    builder: (context, snapshot) {
+                                      if (snapshot.connectionState ==
+                                          ConnectionState.waiting) {
+                                        return const CircularProgressIndicator();
+                                      } else if (snapshot.hasError) {
+                                        return const Text(
+                                            'Erro ao carregar desempenho.');
+                                      } else {
+                                        final sellerData = snapshot.data!;
+                                        return FutureBuilder<
+                                            Map<String, String>>(
+                                          future: _fetchSellerNames(),
+                                          builder: (context, nameSnapshot) {
+                                            if (nameSnapshot.connectionState ==
+                                                ConnectionState.waiting) {
+                                              return const CircularProgressIndicator();
+                                            } else if (nameSnapshot.hasError) {
+                                              return const Text(
+                                                  'Erro ao carregar nomes.');
+                                            } else {
+                                              final sellerNames =
+                                                  nameSnapshot.data!;
+                                              return _buildPieChart(
+                                                  sellerData, sellerNames);
+                                            }
+                                          },
+                                        );
+                                      }
+                                    },
+                                  ),
+                                ],
                               ),
-                              const SizedBox(height: 10),
-                              _buildSalesGrowthChart(),
+                              const SizedBox(width: 30),
+                              Column(
+                                children: [
+                                  const Text(
+                                    'Crescimento vendas',
+                                    style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  _buildSalesGrowthChart(),
+                                ],
+                              ),
                             ],
                           ),
                         ],
                       ),
-                    ],
-                  ),
-                );
-              }
-            },
+                    );
+                  }
+                },
+              ),
+            ),
           ),
-        ),
+          // Widget de lembrete no canto inferior esquerdo
+          Positioned(
+            left: 16.0,
+            bottom: 16.0,
+            child: _buildPaymentReminderWidget(),
+          ),
+        ],
       ),
+    );
+  }
+
+  Widget _buildPaymentReminderWidget() {
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: _fetchUpcomingPayments(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          print("Nenhum lembrete para exibir.");
+          return const SizedBox.shrink(); // Retorna vazio se não houver lembrete
+        }
+
+        final payments = snapshot.data!;
+        print("Exibindo lembrete para ${payments.length} pagamentos.");
+
+        return GestureDetector(
+          onTap: () => _showReminderModal(context, payments),
+          child: Container(
+            padding: const EdgeInsets.all(16.0),
+            decoration: BoxDecoration(
+              color: Colors.purple, // Fundo roxo
+              borderRadius: BorderRadius.circular(16.0), // Bordas arredondadas
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.3),
+                  blurRadius: 6.0,
+                  offset: Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.warning, color: Colors.white),
+                const SizedBox(width: 8),
+                const Text(
+                  'Pagamentos a vencer:',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  payments.map((p) => p['nome']).join(", "),
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showReminderModal(
+      BuildContext context, List<Map<String, dynamic>> payments) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Aviso de Vencimento'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: payments.map((payment) {
+              return ListTile(
+                title: Text(payment['nome']),
+                subtitle: Text(
+                    'Vencimento em ${DateFormat('dd/MM/yyyy').format(payment['dataVencimentoPagamento'])}'),
+              );
+            }).toList(),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Fechar'),
+            ),
+            TextButton(
+              onPressed: () async {
+                // Atualiza cada cliente para que o lembrete não apareça mais
+                for (var payment in payments) {
+                  await FirebaseFirestore.instance
+                      .collection('clients')
+                      .doc(payment['clientId'])
+                      .update({'reminderAcknowledged': true});
+                }
+                Navigator.of(context).pop();
+              },
+              child: const Text('Confirmar'),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -274,11 +422,9 @@ class HomePage extends StatelessWidget {
     );
   }
 
-
-
   Future<Map<String, double>> _fetchSellerContributions() async {
     QuerySnapshot snapshot =
-    await FirebaseFirestore.instance.collection('contracts').get();
+        await FirebaseFirestore.instance.collection('contracts').get();
 
     Map<String, double> sellerContributions = {};
 
@@ -295,7 +441,7 @@ class HomePage extends StatelessWidget {
 
   Future<Map<String, double>> _fetchCommissions() async {
     QuerySnapshot snapshot =
-    await FirebaseFirestore.instance.collection('contracts').get();
+        await FirebaseFirestore.instance.collection('contracts').get();
 
     Map<String, double> sellerCommissions = {};
 
@@ -321,7 +467,6 @@ class HomePage extends StatelessWidget {
 
     return sellerCommissions;
   }
-
 
   Future<List<Map<String, dynamic>>> _fetchWeeklySalesData() async {
     try {
@@ -491,8 +636,6 @@ class HomePage extends StatelessWidget {
       },
     );
   }
-
-
 
   // Função para calcular a semana do ano
   int _getWeekOfYear(DateTime date) {

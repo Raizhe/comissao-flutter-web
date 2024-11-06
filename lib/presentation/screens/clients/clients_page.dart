@@ -38,9 +38,9 @@ class _ClientsPageState extends State<ClientsPage> {
   void _searchClients(String query) {
     setState(() {
       _filteredClients = _clients.where((client) {
-        return client.clientName.toLowerCase().contains(query.toLowerCase()) ||
-            client.companyName.toLowerCase().contains(query.toLowerCase()) ||
-            (client.phone?.toLowerCase() ?? '').contains(query.toLowerCase()) ||
+        return client.nome.toLowerCase().contains(query.toLowerCase()) ||
+            (client.cpfcnpj?.toLowerCase() ?? '').contains(query.toLowerCase()) ||
+            (client.telefone?.toLowerCase() ?? '').contains(query.toLowerCase()) ||
             client.situation.toLowerCase().contains(query.toLowerCase());
       }).toList();
     });
@@ -51,8 +51,8 @@ class _ClientsPageState extends State<ClientsPage> {
       _isAscending = !_isAscending;
       _filteredClients.sort((a, b) {
         return _isAscending
-            ? a.clientName.compareTo(b.clientName)
-            : b.clientName.compareTo(a.clientName);
+            ? a.nome.compareTo(b.nome)
+            : b.nome.compareTo(a.nome);
       });
     });
   }
@@ -82,8 +82,7 @@ class _ClientsPageState extends State<ClientsPage> {
                         Expanded(
                           child: TextField(
                             decoration: const InputDecoration(
-                              hintText:
-                              'Buscar por nome, empresa, telefone ou situação',
+                              hintText: 'Buscar por nome, CNPJ/CPF, telefone ou situação',
                               border: OutlineInputBorder(),
                               prefixIcon: Icon(Icons.search),
                             ),
@@ -147,8 +146,9 @@ class _ClientsPageState extends State<ClientsPage> {
         ),
         columns: [
           const DataColumn(label: Text('Nome')),
-          if (!isCompact) const DataColumn(label: Text('Empresa')),
+          if (!isCompact) const DataColumn(label: Text('CNPJ/CPF')),
           if (!isCompact) const DataColumn(label: Text('Telefone')),
+          if (!isCompact) const DataColumn(label: Text('Cidade')),
           const DataColumn(label: Text('Situação')),
           const DataColumn(label: Text('Ações')),
         ],
@@ -156,8 +156,9 @@ class _ClientsPageState extends State<ClientsPage> {
           return DataRow(
             cells: [
               _buildHoverableClientNameCell(client),
-              if (!isCompact) DataCell(Text(client.companyName)),
-              if (!isCompact) DataCell(Text(client.phone ?? 'Não disponível')),
+              if (!isCompact) DataCell(Text(client.cpfcnpj ?? 'Não disponível')),
+              if (!isCompact) DataCell(Text(client.telefone ?? 'Não disponível')),
+              if (!isCompact) DataCell(Text(client.cidade ?? 'Não disponível')),
               DataCell(Text(client.situation)),
               DataCell(
                 IconButton(
@@ -194,7 +195,7 @@ class _ClientsPageState extends State<ClientsPage> {
                   fontWeight: isHovered ? FontWeight.bold : FontWeight.normal,
                   color: Colors.black,
                 ),
-                child: Text(client.clientName),
+                child: Text(client.nome),
               ),
             ),
           );
