@@ -10,7 +10,7 @@ class ClientDetailsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('${client.clientName}'),
+        title: Text('${client.nome}'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -51,21 +51,28 @@ class ClientDetailsPage extends StatelessWidget {
 
   List<TableRow> _buildTableRows() {
     return [
-      _buildTableRow('Nome', client.clientName),
-      _buildTableRow('Empresa', client.companyName),
-      _buildTableRow('Email', client.clientEmail ?? 'Não disponível'),
-      _buildTableRow('Telefone', client.phone ?? 'Não disponível'),
-      _buildTableRow('Celular', client.cellPhone ?? 'Não disponível'),
-      _buildTableRow('Website', client.website ?? 'Não disponível'),
-      _buildTableRow('Endereço', client.address ?? 'Não disponível'),
-      _buildTableRow('Inscrição Estadual', client.stateInscription ?? 'Não disponível'),
-      _buildTableRow('Inscrição Municipal', client.municipalInscription ?? 'Não disponível'),
-      _buildTableRow('Modelo de Projeto', client.projectModel ?? 'Não disponível'),
-      _buildTableRow('ID do Pré-vendedor', client.preSellerId ?? 'Não disponível'),
-      _buildTableRow('ID do Vendedor', client.sellerId ?? 'Não disponível'),
-      _buildTableRow('CNPJ', client.cnpj ?? 'Não disponível'),
-      _buildTableRow('CPF', client.cpf ?? 'Não disponível'),
-      _buildTableRow('Grupo', client.group ?? 'Não disponível'),
+      _buildTableRow('Nome', client.nome),
+      _buildTableRow('CNPJ', client.cpfcnpj ?? 'Não disponível'),
+      _buildTableRow('Inscrição Estadual', client.inscricaoEstadual ?? 'Não disponível'),
+      _buildTableRow('Email', client.email ?? 'Não disponível'),
+      _buildTableRow('Telefone', client.telefone ?? 'Não disponível'),
+      _buildTableRow('Rua', client.rua ?? 'Não disponível'),
+      _buildTableRow('Número', client.numero?.toString() ?? 'Não disponível'),
+      _buildTableRow('Complemento', client.complemento ?? 'Não disponível'),
+      _buildTableRow('Bairro', client.bairro ?? 'Não disponível'),
+      _buildTableRow('Cidade', client.cidade ?? 'Não disponível'),
+      _buildTableRow('Estado', client.estado ?? 'Não disponível'),
+      _buildTableRow('CEP', client.cep ?? 'Não disponível'),
+      _buildTableRow('País', client.pais ?? 'Não disponível'),
+      _buildTableRow('Código do Produto', client.codigoProduto?.toString() ?? 'Não disponível'),
+      _buildTableRow('Nome do Produto', client.nomeProduto ?? 'Não disponível'),
+      _buildTableRow('Valor Unitário', client.valorUnitario ?? 'Não disponível'),
+      _buildTableRow('Quantidade', client.quantidade?.toString() ?? 'Não disponível'),
+      _buildTableRow('NCM', client.ncm?.toString() ?? 'Não disponível'),
+      _buildTableRow('Natureza', client.natureza?.toString() ?? 'Não disponível'),
+      _buildTableRow('Código de Venda', client.codigoVenda?.toString() ?? 'Não disponível'),
+      _buildTableRow('Data da Venda', client.dataVenda?.toString() ?? 'Não disponível'),
+      _buildTableRow('Data Retroativa', client.dataRetroativa?.toString() ?? 'Não disponível'),
       _buildTableRow('Situação', client.situation),
       _buildTableRow('Registrado em', _formatDate(client.registeredAt)),
     ];
