@@ -180,8 +180,9 @@ class HomePage extends StatelessWidget {
                           ),
                           const SizedBox(height: 30),
                           _buildResponsiveGrid(data),
-                          const SizedBox(height: 30),
+                          const SizedBox(height: 40),
                           _buildSellerCommissionsCard(),
+                          const SizedBox(height: 40),
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -511,68 +512,70 @@ class HomePage extends StatelessWidget {
     }
   }
 
-  Widget _buildSellerPerformanceCard() {
-    return FutureBuilder<Map<String, double>>(
-      future: _fetchSellerContributions(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const CircularProgressIndicator();
-        } else if (snapshot.hasError) {
-          return const Text('Erro ao carregar contribuições.');
-        } else {
-          final contributions = snapshot.data!;
-          return FutureBuilder<Map<String, String>>(
-            future: _fetchSellerNames(),
-            builder: (context, nameSnapshot) {
-              if (nameSnapshot.connectionState == ConnectionState.waiting) {
-                return const CircularProgressIndicator();
-              } else if (nameSnapshot.hasError) {
-                return const Text('Erro ao carregar nomes.');
-              } else {
-                final sellerNames = nameSnapshot.data!;
-                final sortedContributions = contributions.entries.toList()
-                  ..sort((a, b) => b.value.compareTo(a.value));
+  // Widget _buildSellerPerformanceCard() {
+  //   return FutureBuilder<Map<String, double>>(
+  //     future: _fetchSellerContributions(),
+  //     builder: (context, snapshot) {
+  //       if (snapshot.connectionState == ConnectionState.waiting) {
+  //         return const CircularProgressIndicator();
+  //       } else if (snapshot.hasError) {
+  //         return const Text('Erro ao carregar contribuições.');
+  //       } else {
+  //         final contributions = snapshot.data!;
+  //         return FutureBuilder<Map<String, String>>(
+  //           future: _fetchSellerNames(),
+  //           builder: (context, nameSnapshot) {
+  //             if (nameSnapshot.connectionState == ConnectionState.waiting) {
+  //               return const CircularProgressIndicator();
+  //             } else if (nameSnapshot.hasError) {
+  //               return const Text('Erro ao carregar nomes.');
+  //             } else {
+  //               final sellerNames = nameSnapshot.data!;
+  //               final sortedContributions = contributions.entries.toList()
+  //                 ..sort((a, b) => b.value.compareTo(a.value));
+  //
+  //               return Card(
+  //                 elevation: 8.0,
+  //                 shape: RoundedRectangleBorder(
+  //                   borderRadius: BorderRadius.circular(12.0),
+  //                 ),
+  //                 child: Padding(
+  //                   padding: const EdgeInsets.all(16.0),
+  //                   child: Column(
+  //                     crossAxisAlignment: CrossAxisAlignment.start,
+  //                     children: [
+  //                       const Text(
+  //                         'Contribuição por Vendedor',
+  //                         style: TextStyle(
+  //                           fontSize: 18,
+  //                           fontWeight: FontWeight.bold,
+  //                         ),
+  //                       ),
+  //                       const SizedBox(height: 10),
+  //                       ...sortedContributions.map((entry) {
+  //                         String sellerName =
+  //                             sellerNames[entry.key] ?? 'Desconhecido';
+  //                         double contribution = entry.value;
+  //                         return ListTile(
+  //                           title: Text(sellerName),
+  //                           subtitle: Text(
+  //                             'Contribuição: R\$ ${contribution.toStringAsFixed(2)}',
+  //                           ),
+  //                         );
+  //                       }).toList(),
+  //                     ],
+  //                   ),
+  //                 ),
+  //               );
+  //             }
+  //           },
+  //         );
+  //       }
+  //     },
+  //   );
+  // }
 
-                return Card(
-                  elevation: 8.0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.0),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Contribuição por Vendedor',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        ...sortedContributions.map((entry) {
-                          String sellerName =
-                              sellerNames[entry.key] ?? 'Desconhecido';
-                          double contribution = entry.value;
-                          return ListTile(
-                            title: Text(sellerName),
-                            subtitle: Text(
-                              'Contribuição: R\$ ${contribution.toStringAsFixed(2)}',
-                            ),
-                          );
-                        }).toList(),
-                      ],
-                    ),
-                  ),
-                );
-              }
-            },
-          );
-        }
-      },
-    );
-  }
+
 
   Widget _buildSellerCommissionsCard() {
     return FutureBuilder<Map<String, double>>(
@@ -596,36 +599,64 @@ class HomePage extends StatelessWidget {
                 final sortedCommissions = commissions.entries.toList()
                   ..sort((a, b) => b.value.compareTo(a.value));
 
-                return Card(
-                  elevation: 8.0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.0),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Comissões por Vendedor',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        ...sortedCommissions.map((entry) {
-                          String sellerName =
-                              sellerNames[entry.key] ?? 'Desconhecido';
-                          double commission = entry.value;
-                          return ListTile(
-                            title: Text(sellerName),
-                            subtitle: Text(
-                              'Comissão: R\$ ${commission.toStringAsFixed(2)}',
+                return SizedBox(
+                  width: 400,
+                  child: Card(
+                    elevation: 8.0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12.0),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Center(
+                            child: Text(
+                              'Comissões por Vendedor',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          );
-                        }).toList(),
-                      ],
+                          ),
+                          const SizedBox(height: 10),
+                          ...sortedCommissions.asMap().entries.map((entry) {
+                            int index = entry.key;
+                            MapEntry<String, double> commissionEntry = entry.value;
+                            String sellerName = sellerNames[commissionEntry.key] ?? 'Desconhecido';
+                            double commission = commissionEntry.value;
+
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4.0),
+                              child: Row(
+                                children: [
+                                  Text(
+                                    sellerName,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  if (index == 0) ...[
+                                    const SizedBox(width: 8), // Space before the trophy
+                                    Icon(
+                                      Icons.emoji_events, // Trophy icon
+                                      color: Colors.amber, // Gold color
+                                    ),
+                                  ],
+                                  const Spacer(),
+                                  Text(
+                                    'Comissão: R\$ ${commission.toStringAsFixed(2)}',
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ],
+                      ),
                     ),
                   ),
                 );
@@ -636,6 +667,10 @@ class HomePage extends StatelessWidget {
       },
     );
   }
+
+
+
+
 
   // Função para calcular a semana do ano
   int _getWeekOfYear(DateTime date) {
