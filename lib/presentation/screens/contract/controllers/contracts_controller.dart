@@ -75,4 +75,65 @@ class ContractController extends GetxController {
       isLoading.value = false;
     }
   }
+
+  // Método para atualizar o status de um contrato (pausar ou cancelar)
+// Método para atualizar o status de um contrato (pausar ou cancelar)
+  Future<void> updateContractStatus(ContractModel contract, String newStatus) async {
+    isLoading.value = true;
+    try {
+      // Atualiza o status do contrato no Firestore
+      await FirebaseFirestore.instance
+          .collection('contracts')
+          .doc(contract.contractId)
+          .update({'status': newStatus});
+
+      // Cria uma nova instância de ContractModel com o novo status
+      final updatedContract = ContractModel(
+        contractId: contract.contractId,
+        clientCNPJ: contract.clientCNPJ,
+        clientName: contract.clientName,
+        sellerId: contract.sellerId,
+        operadorId: contract.operadorId,
+        preSellerId: contract.preSellerId,
+        type: contract.type,
+        amount: contract.amount,
+        startDate: contract.startDate,
+        endDate: contract.endDate,
+        status: newStatus,
+        createdAt: contract.createdAt,
+        paymentMethod: contract.paymentMethod,
+        installments: contract.installments,
+        renewalType: contract.renewalType,
+        salesOrigin: contract.salesOrigin,
+        address: contract.address,
+        representanteLegal: contract.representanteLegal,
+        cpfRepresentante: contract.cpfRepresentante,
+        emailFinanceiro: contract.emailFinanceiro,
+        telefone: contract.telefone,
+        observacoes: contract.observacoes,
+        feeMensal: contract.feeMensal,
+        costumerSuccess: contract.costumerSuccess,
+        commission: contract.commission,
+      );
+
+      // Substitui o contrato na lista de contratos
+      int index = contracts.indexWhere((c) => c.contractId == contract.contractId);
+      if (index != -1) {
+        contracts[index] = updatedContract;
+        contracts.refresh();
+      }
+
+      int filteredIndex = filteredContracts.indexWhere((c) => c.contractId == contract.contractId);
+      if (filteredIndex != -1) {
+        filteredContracts[filteredIndex] = updatedContract;
+        filteredContracts.refresh();
+      }
+
+      Get.snackbar('Sucesso', 'Status do contrato atualizado para $newStatus.');
+    } catch (e) {
+      Get.snackbar('Erro', 'Erro ao atualizar o status do contrato: $e');
+    } finally {
+      isLoading.value = false;
+    }
+  }
 }

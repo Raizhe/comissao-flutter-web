@@ -34,6 +34,41 @@ class _ContractsPageState extends State<ContractsPage> {
     });
   }
 
+  void _showContractOptionsModal(ContractModel contract) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Opções do Contrato'),
+          content: const Text('Escolha uma ação para este contrato.'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                _contractController.updateContractStatus(contract, 'pausado');
+                Navigator.of(context).pop();
+              },
+              child: const Text(
+                'Pausar',
+                style: TextStyle(color: Colors.blue),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                _contractController.updateContractStatus(contract, 'cancelado');
+                Navigator.of(context).pop();
+              },
+              child: const Text(
+                'Cancelar',
+                style: TextStyle(color: Colors.red),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -172,12 +207,13 @@ class _ContractsPageState extends State<ContractsPage> {
                 IconButton(
                   icon: const Icon(Icons.settings),
                   onPressed: () {
-                    Get.toNamed('/contract_form', arguments: contract);
+                    _showContractOptionsModal(contract);
                   },
                 ),
               ),
             ],
           );
+
         }).toList(),
       ),
     );
@@ -220,8 +256,11 @@ class _ContractsPageState extends State<ContractsPage> {
         return Colors.orange;
       case 'cancelado':
         return Colors.red;
+      case 'pausado':
+        return Colors.blue; // Cor para o status pausado
       default:
         return Colors.black;
     }
   }
+
 }
