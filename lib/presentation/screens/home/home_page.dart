@@ -28,17 +28,21 @@ class HomePage extends StatelessWidget {
     }
   }
 
-  Future<Map<String, int>> _fetchAllMetrics() async {
+  Future<Map<String, int>> _fetchALLMetrics() async {
     int salesCount = await _getCount('contracts');
     int leadsCount = await _getCount('leads');
     int clientsCount = await _getCount('clients');
-    int meetingsCount = await _getCount('meets');
+    int activeContractsCount = await _getCount('contracts', status: 'ativo');
+    int inactiveContractsCount = await _getCount('contracts',
+        status: 'inativo');
 
     return {
       'sales': salesCount,
       'leads': leadsCount,
       'clients': clientsCount,
-      'meetings': meetingsCount,
+      'contracts': activeContractsCount,
+      'inactiveContracts': inactiveContractsCount,
+      // Adiciona contratos inativos
     };
   }
 
@@ -62,16 +66,17 @@ class HomePage extends StatelessWidget {
     return sellerPerformance;
   }
 
-  Future<int> _getCount(String collection) async {
-    try {
-      QuerySnapshot snapshot =
-          await FirebaseFirestore.instance.collection(collection).get();
-      return snapshot.size;
-    } catch (e) {
-      print('Erro ao buscar contagem: $e');
-      return 0;
+  Future<int> _getCount(String collectionName, {String? status}) async {
+    Query<Map<String, dynamic>> query = FirebaseFirestore.instance.collection(collectionName);
+
+    if (status != null) {
+      query = query.where('status', isEqualTo: status);
     }
+
+    final snapshot = await query.get();
+    return snapshot.size;
   }
+
 
   Future<List<Map<String, dynamic>>> _fetchUpcomingPayments() async {
     QuerySnapshot snapshot = await FirebaseFirestore.instance
@@ -86,11 +91,12 @@ class HomePage extends StatelessWidget {
     for (var doc in snapshot.docs) {
       final data = doc.data() as Map<String, dynamic>?;
 
-      if (data != null && data.containsKey('dataVencimentoPagamento') &&
+      if (data != null &&
+          data.containsKey('dataVencimentoPagamento') &&
           data['dataVencimentoPagamento'] != null &&
           data['dataVencimentoPagamento'] is Timestamp) {
-
-        DateTime dueDate = (data['dataVencimentoPagamento'] as Timestamp).toDate();
+        DateTime dueDate =
+            (data['dataVencimentoPagamento'] as Timestamp).toDate();
 
         if (dueDate.difference(now).inDays <= 5 && dueDate.isAfter(now)) {
           upcomingPayments.add({
@@ -100,21 +106,20 @@ class HomePage extends StatelessWidget {
           });
         }
       } else {
-        print("Erro: 'dataVencimentoPagamento' está ausente ou não é Timestamp para o documento ${doc.id}");
+        print(
+            "Erro: 'dataVencimentoPagamento' está ausente ou não é Timestamp para o documento ${doc.id}");
       }
     }
-
 
     // Log de depuração
     print("Total de lembretes encontrados: ${upcomingPayments.length}");
     for (var payment in upcomingPayments) {
-      print("Lembrete para ${payment['nome']} com vencimento em ${payment['dataVencimentoPagamento']}");
+      print(
+          "Lembrete para ${payment['nome']} com vencimento em ${payment['dataVencimentoPagamento']}");
     }
 
     return upcomingPayments;
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -161,7 +166,7 @@ class HomePage extends StatelessWidget {
               padding:
                   const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
               child: FutureBuilder<Map<String, int>>(
-                future: _fetchAllMetrics(),
+                future: _fetchALLMetrics(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
@@ -270,7 +275,8 @@ class HomePage extends StatelessWidget {
       builder: (context, snapshot) {
         if (!snapshot.hasData || snapshot.data!.isEmpty) {
           print("Nenhum lembrete para exibir.");
-          return const SizedBox.shrink(); // Retorna vazio se não houver lembrete
+          return const SizedBox
+              .shrink(); // Retorna vazio se não houver lembrete
         }
 
         final payments = snapshot.data!;
@@ -298,7 +304,8 @@ class HomePage extends StatelessWidget {
                 const SizedBox(width: 8),
                 const Text(
                   'Pagamentos a vencer:',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(width: 8),
                 Text(
@@ -575,8 +582,6 @@ class HomePage extends StatelessWidget {
   //   );
   // }
 
-
-
   Widget _buildSellerCommissionsCard() {
     return FutureBuilder<Map<String, double>>(
       future: _fetchCommissions(),
@@ -623,12 +628,16 @@ class HomePage extends StatelessWidget {
                           const SizedBox(height: 10),
                           ...sortedCommissions.asMap().entries.map((entry) {
                             int index = entry.key;
-                            MapEntry<String, double> commissionEntry = entry.value;
-                            String sellerName = sellerNames[commissionEntry.key] ?? 'Desconhecido';
+                            MapEntry<String, double> commissionEntry =
+                                entry.value;
+                            String sellerName =
+                                sellerNames[commissionEntry.key] ??
+                                    'Desconhecido';
                             double commission = commissionEntry.value;
 
                             return Padding(
-                              padding: const EdgeInsets.symmetric(vertical: 4.0),
+                              padding:
+                                  const EdgeInsets.symmetric(vertical: 4.0),
                               child: Row(
                                 children: [
                                   Text(
@@ -638,7 +647,8 @@ class HomePage extends StatelessWidget {
                                     ),
                                   ),
                                   if (index == 0) ...[
-                                    const SizedBox(width: 8), // Space before the trophy
+                                    const SizedBox(width: 8),
+                                    // Space before the trophy
                                     Icon(
                                       Icons.emoji_events, // Trophy icon
                                       color: Colors.amber, // Gold color
@@ -667,10 +677,6 @@ class HomePage extends StatelessWidget {
       },
     );
   }
-
-
-
-
 
   // Função para calcular a semana do ano
   int _getWeekOfYear(DateTime date) {
@@ -754,17 +760,39 @@ class HomePage extends StatelessWidget {
       alignment: WrapAlignment.center,
       children: [
         _buildMetricCard(
-            'Vendas', data['sales']!, Colors.orange, '/contracts_page'),
-        _buildMetricCard('Leads', data['leads']!, Colors.blue, '/leads_page'),
+          'Vendas',
+          data['sales']!,
+          Colors.orange,
+          '/contracts_page',
+          positiveTrend: true, // Define a tendência conforme necessário
+        ),
         _buildMetricCard(
-            'Clientes', data['clients']!, Colors.purple, '/clients_page'),
+          'Contratos Inativos',
+          data['inactiveContracts']!,
+          Colors.red,
+          '/contracts_page',
+          positiveTrend: false, // Negativo para inativos
+        ),
         _buildMetricCard(
-            'Reuniões', data['meetings']!, Colors.green, '/meet_page'),
+          'Clientes',
+          data['clients']!,
+          Colors.purple,
+          '/clients_page',
+          positiveTrend: true, // Define a tendência conforme necessário
+        ),
+        _buildMetricCard(
+          'Contratos Ativos',
+          data['contracts']!,
+          Colors.green,
+          '/contracts_page',
+          positiveTrend: true, // Positivo para ativos
+        ),
       ],
     );
   }
 
-  Widget _buildMetricCard(String title, int value, Color color, String route) {
+  Widget _buildMetricCard(String title, int value, Color color, String route,
+      {required bool positiveTrend}) {
     return GestureDetector(
       onTap: () => Get.toNamed(route),
       child: MouseRegion(
@@ -787,9 +815,16 @@ class HomePage extends StatelessWidget {
                   Text(
                     value.toString(),
                     style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: color),
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: color,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Icon(
+                    positiveTrend ? Icons.trending_up : Icons.trending_down,
+                    color: positiveTrend ? Colors.green : Colors.red,
+                    size: 20,
                   ),
                 ],
               ),
