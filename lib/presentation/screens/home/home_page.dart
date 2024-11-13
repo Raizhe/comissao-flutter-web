@@ -16,6 +16,25 @@ class _HomePageState extends State<HomePage> {
   final UserRepository userRepository = UserRepository();
   late Future<Map<String, int>> metricsFuture;
 
+  Stream<Map<String, int>> _combinedMetricsStream() {
+    return FirebaseFirestore.instance.collection('contracts').snapshots().asyncMap((contractSnapshot) async {
+      int salesCount = contractSnapshot.size;
+      int activeContractsCount = contractSnapshot.docs.where((doc) => doc['status'] == 'ativo').length;
+      int inactiveContractsCount = contractSnapshot.docs.where((doc) => doc['status'] == 'cancelado').length;
+
+      // Obtenha a contagem de clientes
+      var clientSnapshot = await FirebaseFirestore.instance.collection('clients').get();
+      int clientsCount = clientSnapshot.size;
+
+      return {
+        'sales': salesCount,
+        'clients': clientsCount,
+        'contracts': activeContractsCount,
+        'inactiveContracts': inactiveContractsCount,
+      };
+    });
+  }
+
   Stream<Map<String, int>> _metricsStream() {
     // Escuta atualizações em tempo real na coleção de contratos
     return FirebaseFirestore.instance.collection('contracts').snapshots().map((snapshot) {
@@ -116,7 +135,7 @@ class _HomePageState extends State<HomePage> {
 
   Future<List<Map<String, dynamic>>> _fetchUpcomingPayments() async {
     QuerySnapshot snapshot = await FirebaseFirestore.instance
-        .collection('contracts')
+        .collection('clients')
         .where('dataVencimentoPagamento', isNotEqualTo: null)
         .where('reminderAcknowledged', isEqualTo: false)
         .get();
@@ -176,7 +195,6 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     metricsFuture = _fetchALLMetrics();
   }
-
   @override
   Widget build(BuildContext context) {
     User? user = FirebaseAuth.instance.currentUser;
@@ -220,7 +238,7 @@ class _HomePageState extends State<HomePage> {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
               child: StreamBuilder<Map<String, int>>(
-                stream: _metricsStream(), // Substituindo pelo stream das métricas
+                stream: _combinedMetricsStream(), // Usando a stream combinada
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
@@ -308,7 +326,6 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
           ),
-          // Widget de lembrete no canto inferior esquerdo
           Positioned(
             left: 16.0,
             bottom: 16.0,
@@ -732,14 +749,14 @@ class _HomePageState extends State<HomePage> {
   int _getWeekOfYear(DateTime date) {
     final firstDayOfYear = DateTime(date.year, 1, 1);
     final daysSinceFirstDay = date.difference(firstDayOfYear).inDays;
-    return (daysSinceFirstDay / 7).ceil();
+    return (daysSinceFirstDay / 5).ceil();
   }
 
   Widget _buildLineChart(List<Map<String, dynamic>> salesData) {
     double maxY = salesData
             .map((e) => e['amount'] as double)
             .reduce((a, b) => a > b ? a : b) +
-        10;
+        5;
 
     return SizedBox(
       width: 400,
@@ -803,25 +820,6 @@ class _HomePageState extends State<HomePage> {
     return 'Sem ${weekNumber.toString()}';
   }
 
-  Stream<Map<String, int>> _combinedMetricsStream() {
-    return FirebaseFirestore.instance.collection('contracts').snapshots().asyncMap((contractSnapshot) async {
-      int salesCount = contractSnapshot.size;
-      int activeContractsCount = contractSnapshot.docs.where((doc) => doc['status'] == 'ativo').length;
-      int inactiveContractsCount = contractSnapshot.docs.where((doc) => doc['status'] == 'cancelado').length;
-
-      // Obtenha a contagem de clientes
-      var clientSnapshot = await FirebaseFirestore.instance.collection('clients').get();
-      int clientsCount = clientSnapshot.size;
-
-      return {
-        'sales': salesCount,
-        'clients': clientsCount,
-        'contracts': activeContractsCount,
-        'inactiveContracts': inactiveContractsCount,
-      };
-    });
-  }
-
 
   Widget _buildResponsiveGrid(Map<String, int> data) {
     return Wrap(
@@ -834,33 +832,32 @@ class _HomePageState extends State<HomePage> {
           data['sales']!,
           Colors.orange,
           '/contracts_page',
-          positiveTrend: true, // Define a tendência conforme necessário
+          positiveTrend: true,
         ),
         _buildMetricCard(
           'Clientes',
           data['clients']!,
           Colors.purple,
           '/clients_page',
-          positiveTrend: true, // Define a tendência conforme necessário
+          positiveTrend: true,
         ),
         _buildMetricCard(
           'Contratos Inativos',
           data['inactiveContracts']!,
           Colors.red,
           '/contracts_page',
-          positiveTrend: false, // Negativo para inativos
+          positiveTrend: false,
         ),
         _buildMetricCard(
           'Contratos Ativos',
           data['contracts']!,
           Colors.green,
           '/contracts_page',
-          positiveTrend: true, // Positivo para ativos
+          positiveTrend: true,
         ),
       ],
     );
   }
-
   Widget _buildMetricCard(String title, int value, Color color, String route,
       {required bool positiveTrend}) {
     return GestureDetector(
@@ -873,8 +870,7 @@ class _HomePageState extends State<HomePage> {
           height: 150,
           child: Card(
             elevation: 5,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: Padding(
               padding: const EdgeInsets.all(8.0),
               child: Column(
@@ -904,7 +900,6 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
-
   Widget _buildSalesGrowthChart() {
     return FutureBuilder<List<Map<String, dynamic>>>(
       future: _fetchWeeklySalesData(),
