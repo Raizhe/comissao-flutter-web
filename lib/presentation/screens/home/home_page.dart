@@ -7,10 +7,66 @@ import 'package:intl/intl.dart';
 import '../../../data/repositories/user_repository.dart';
 import '../../../widgets/side_bar_widget.dart';
 
-class HomePage extends StatelessWidget {
-  final UserRepository userRepository = UserRepository();
+class HomePage extends StatefulWidget {
+  @override
+  _HomePageState createState() => _HomePageState();
+}
 
-  HomePage({Key? key}) : super(key: key);
+class _HomePageState extends State<HomePage> {
+  final UserRepository userRepository = UserRepository();
+  late Future<Map<String, int>> metricsFuture;
+
+  Stream<Map<String, int>> _combinedMetricsStream() {
+    return FirebaseFirestore.instance.collection('contracts').snapshots().asyncMap((contractSnapshot) async {
+      int salesCount = contractSnapshot.size;
+      int activeContractsCount = contractSnapshot.docs.where((doc) => doc['status'] == 'ativo').length;
+      int inactiveContractsCount = contractSnapshot.docs.where((doc) => doc['status'] == 'cancelado').length;
+
+      // Obtenha a contagem de clientes
+      var clientSnapshot = await FirebaseFirestore.instance.collection('clients').get();
+      int clientsCount = clientSnapshot.size;
+
+      return {
+        'sales': salesCount,
+        'clients': clientsCount,
+        'contracts': activeContractsCount,
+        'inactiveContracts': inactiveContractsCount,
+      };
+    });
+  }
+
+  Stream<Map<String, int>> _metricsStream() {
+    // Escuta atualizações em tempo real na coleção de contratos
+    return FirebaseFirestore.instance.collection('contracts').snapshots().map((snapshot) {
+      int salesCount = 0;
+      int clientsCount = 0; // ou ajuste conforme necessário
+      int activeContractsCount = 0;
+      int inactiveContractsCount = 0;
+
+      for (var doc in snapshot.docs) {
+        var data = doc.data();
+        salesCount++;
+        if (data['status'] == 'ativo') {
+          activeContractsCount++;
+        } else if (data['status'] == 'cancelado') {
+          inactiveContractsCount++;
+        }
+      }
+
+      return {
+        'sales': salesCount,
+        'clients': clientsCount,
+        'contracts': activeContractsCount,
+        'inactiveContracts': inactiveContractsCount,
+      };
+    });
+  }
+  Stream<int> _clientsStream() {
+    return FirebaseFirestore.instance.collection('clients').snapshots().map((snapshot) {
+      return snapshot.size;
+    });
+  }
+
 
   Future<void> _signOut() async {
     await FirebaseAuth.instance.signOut();
@@ -30,19 +86,18 @@ class HomePage extends StatelessWidget {
 
   Future<Map<String, int>> _fetchALLMetrics() async {
     int salesCount = await _getCount('contracts');
-    int leadsCount = await _getCount('leads');
     int clientsCount = await _getCount('clients');
     int activeContractsCount = await _getCount('contracts', status: 'ativo');
     int inactiveContractsCount = await _getCount('contracts',
-        status: 'inativo');
+        status:
+            'cancelado'); // Verifique se o status é "cancelado" no Firestore
 
     return {
       'sales': salesCount,
-      'leads': leadsCount,
       'clients': clientsCount,
       'contracts': activeContractsCount,
       'inactiveContracts': inactiveContractsCount,
-      // Adiciona contratos inativos
+      // Inclui contratos cancelados
     };
   }
 
@@ -67,7 +122,8 @@ class HomePage extends StatelessWidget {
   }
 
   Future<int> _getCount(String collectionName, {String? status}) async {
-    Query<Map<String, dynamic>> query = FirebaseFirestore.instance.collection(collectionName);
+    Query<Map<String, dynamic>> query =
+        FirebaseFirestore.instance.collection(collectionName);
 
     if (status != null) {
       query = query.where('status', isEqualTo: status);
@@ -76,7 +132,6 @@ class HomePage extends StatelessWidget {
     final snapshot = await query.get();
     return snapshot.size;
   }
-
 
   Future<List<Map<String, dynamic>>> _fetchUpcomingPayments() async {
     QuerySnapshot snapshot = await FirebaseFirestore.instance
@@ -121,6 +176,25 @@ class HomePage extends StatelessWidget {
     return upcomingPayments;
   }
 
+  void refreshMetrics() {
+    setState(() {
+      metricsFuture = _fetchALLMetrics();
+    });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Recarrega as métricas sempre que a página recebe o foco novamente
+    metricsFuture = _fetchALLMetrics();
+  }
+
+
+  @override
+  void initState() {
+    super.initState();
+    metricsFuture = _fetchALLMetrics();
+  }
   @override
   Widget build(BuildContext context) {
     User? user = FirebaseAuth.instance.currentUser;
@@ -147,15 +221,14 @@ class HomePage extends StatelessWidget {
         ],
       ),
       drawer: FutureBuilder<String?>(
-        future: userRepository.getUserRole(user!.uid),
+        future: userRepository.getUserRole(user.uid),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasData) {
             return SidebarWidget(role: snapshot.data!);
           } else {
-            return const Center(
-                child: Text('Erro ao carregar o papel do usuário.'));
+            return const Center(child: Text('Erro ao carregar o papel do usuário.'));
           }
         },
       ),
@@ -163,16 +236,14 @@ class HomePage extends StatelessWidget {
         children: [
           Center(
             child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
-              child: FutureBuilder<Map<String, int>>(
-                future: _fetchALLMetrics(),
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
+              child: StreamBuilder<Map<String, int>>(
+                stream: _combinedMetricsStream(), // Usando a stream combinada
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   } else if (snapshot.hasError) {
-                    return const Center(
-                        child: Text('Erro ao carregar métricas.'));
+                    return const Center(child: Text('Erro ao carregar métricas.'));
                   } else {
                     final data = snapshot.data!;
                     return SingleChildScrollView(
@@ -181,10 +252,12 @@ class HomePage extends StatelessWidget {
                           const Text(
                             'Drop Lead Dashboard',
                             style: TextStyle(
-                                fontSize: 24, fontWeight: FontWeight.bold),
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                           const SizedBox(height: 30),
-                          _buildResponsiveGrid(data),
+                          _buildResponsiveGrid(data), // Usando dados atualizados
                           const SizedBox(height: 40),
                           _buildSellerCommissionsCard(),
                           const SizedBox(height: 40),
@@ -197,36 +270,30 @@ class HomePage extends StatelessWidget {
                                   const Text(
                                     'Desempenho dos Vendedores',
                                     style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold),
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                   const SizedBox(height: 10),
                                   FutureBuilder<Map<String, int>>(
                                     future: _fetchSellerPerformance(),
                                     builder: (context, snapshot) {
-                                      if (snapshot.connectionState ==
-                                          ConnectionState.waiting) {
+                                      if (snapshot.connectionState == ConnectionState.waiting) {
                                         return const CircularProgressIndicator();
                                       } else if (snapshot.hasError) {
-                                        return const Text(
-                                            'Erro ao carregar desempenho.');
+                                        return const Text('Erro ao carregar desempenho.');
                                       } else {
                                         final sellerData = snapshot.data!;
-                                        return FutureBuilder<
-                                            Map<String, String>>(
+                                        return FutureBuilder<Map<String, String>>(
                                           future: _fetchSellerNames(),
                                           builder: (context, nameSnapshot) {
-                                            if (nameSnapshot.connectionState ==
-                                                ConnectionState.waiting) {
+                                            if (nameSnapshot.connectionState == ConnectionState.waiting) {
                                               return const CircularProgressIndicator();
                                             } else if (nameSnapshot.hasError) {
-                                              return const Text(
-                                                  'Erro ao carregar nomes.');
+                                              return const Text('Erro ao carregar nomes.');
                                             } else {
-                                              final sellerNames =
-                                                  nameSnapshot.data!;
-                                              return _buildPieChart(
-                                                  sellerData, sellerNames);
+                                              final sellerNames = nameSnapshot.data!;
+                                              return _buildPieChart(sellerData, sellerNames);
                                             }
                                           },
                                         );
@@ -241,8 +308,9 @@ class HomePage extends StatelessWidget {
                                   const Text(
                                     'Crescimento vendas',
                                     style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold),
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                   const SizedBox(height: 10),
                                   _buildSalesGrowthChart(),
@@ -258,7 +326,6 @@ class HomePage extends StatelessWidget {
               ),
             ),
           ),
-          // Widget de lembrete no canto inferior esquerdo
           Positioned(
             left: 16.0,
             bottom: 16.0,
@@ -682,14 +749,14 @@ class HomePage extends StatelessWidget {
   int _getWeekOfYear(DateTime date) {
     final firstDayOfYear = DateTime(date.year, 1, 1);
     final daysSinceFirstDay = date.difference(firstDayOfYear).inDays;
-    return (daysSinceFirstDay / 7).ceil();
+    return (daysSinceFirstDay / 5).ceil();
   }
 
   Widget _buildLineChart(List<Map<String, dynamic>> salesData) {
     double maxY = salesData
             .map((e) => e['amount'] as double)
             .reduce((a, b) => a > b ? a : b) +
-        10;
+        5;
 
     return SizedBox(
       width: 400,
@@ -753,6 +820,7 @@ class HomePage extends StatelessWidget {
     return 'Sem ${weekNumber.toString()}';
   }
 
+
   Widget _buildResponsiveGrid(Map<String, int> data) {
     return Wrap(
       spacing: 10,
@@ -764,33 +832,32 @@ class HomePage extends StatelessWidget {
           data['sales']!,
           Colors.orange,
           '/contracts_page',
-          positiveTrend: true, // Define a tendência conforme necessário
-        ),
-        _buildMetricCard(
-          'Contratos Inativos',
-          data['inactiveContracts']!,
-          Colors.red,
-          '/contracts_page',
-          positiveTrend: false, // Negativo para inativos
+          positiveTrend: true,
         ),
         _buildMetricCard(
           'Clientes',
           data['clients']!,
           Colors.purple,
           '/clients_page',
-          positiveTrend: true, // Define a tendência conforme necessário
+          positiveTrend: true,
+        ),
+        _buildMetricCard(
+          'Contratos Inativos',
+          data['inactiveContracts']!,
+          Colors.red,
+          '/contracts_page',
+          positiveTrend: false,
         ),
         _buildMetricCard(
           'Contratos Ativos',
           data['contracts']!,
           Colors.green,
           '/contracts_page',
-          positiveTrend: true, // Positivo para ativos
+          positiveTrend: true,
         ),
       ],
     );
   }
-
   Widget _buildMetricCard(String title, int value, Color color, String route,
       {required bool positiveTrend}) {
     return GestureDetector(
@@ -803,8 +870,7 @@ class HomePage extends StatelessWidget {
           height: 150,
           child: Card(
             elevation: 5,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             child: Padding(
               padding: const EdgeInsets.all(8.0),
               child: Column(
@@ -834,7 +900,6 @@ class HomePage extends StatelessWidget {
       ),
     );
   }
-
   Widget _buildSalesGrowthChart() {
     return FutureBuilder<List<Map<String, dynamic>>>(
       future: _fetchWeeklySalesData(),
