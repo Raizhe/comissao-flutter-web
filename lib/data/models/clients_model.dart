@@ -24,11 +24,11 @@ class ClientModel {
   int? codigoVenda;
   int? dataVenda;
   int? dataRetroativa;
-  DateTime? dataVencimentoPagamento; // Novo campo para data de vencimento
+  DateTime? dataVencimentoPagamento;
   List<String> contracts;
   DateTime registeredAt;
   String situation;
-  bool reminderAcknowledged; // Novo campo para controle de lembretes
+  bool reminderAcknowledged;
 
   ClientModel({
     required this.clientId,
@@ -54,19 +54,19 @@ class ClientModel {
     this.codigoVenda,
     this.dataVenda,
     this.dataRetroativa,
-    this.dataVencimentoPagamento, // Inicializando o novo campo
+    this.dataVencimentoPagamento,
     required this.contracts,
     required this.registeredAt,
     required this.situation,
-    this.reminderAcknowledged = false, // Inicializa como falso por padrão
+    this.reminderAcknowledged = false,
   });
 
   // Construtor vazio para evitar erros nulos
   factory ClientModel.empty() {
     return ClientModel(
       clientId: '',
-      nome: '',
-      cpfcnpj: '',
+      nome: 'Sem Nome',
+      cpfcnpj: 'N/A',
       contracts: [],
       registeredAt: DateTime.now(),
       situation: 'Indefinido',
@@ -80,33 +80,33 @@ class ClientModel {
       'clientId': clientId,
       'nome': nome,
       'cpfcnpj': cpfcnpj,
-      'inscricaoEstadual': inscricaoEstadual,
-      'email': email,
-      'telefone': telefone,
-      'rua': rua,
-      'numero': numero,
-      'complemento': complemento,
-      'bairro': bairro,
-      'cidade': cidade,
-      'estado': estado,
-      'cep': cep,
-      'pais': pais,
-      'codigoProduto': codigoProduto,
-      'nomeProduto': nomeProduto,
-      'valorUnitario': valorUnitario,
-      'quantidade': quantidade,
-      'ncm': ncm,
-      'natureza': natureza,
-      'codigoVenda': codigoVenda,
-      'dataVenda': dataVenda,
-      'dataRetroativa': dataRetroativa,
+      'inscricaoEstadual': inscricaoEstadual ?? '',
+      'email': email ?? '',
+      'telefone': telefone ?? '',
+      'rua': rua ?? '',
+      'numero': numero ?? '',
+      'complemento': complemento ?? '',
+      'bairro': bairro ?? '',
+      'cidade': cidade ?? '',
+      'estado': estado ?? '',
+      'cep': cep ?? '',
+      'pais': pais ?? '',
+      'codigoProduto': codigoProduto ?? 0,
+      'nomeProduto': nomeProduto ?? 'Produto Desconhecido',
+      'valorUnitario': valorUnitario ?? '0',
+      'quantidade': quantidade ?? 0,
+      'ncm': ncm ?? 0,
+      'natureza': natureza ?? 0,
+      'codigoVenda': codigoVenda ?? 0,
+      'dataVenda': dataVenda ?? 0,
+      'dataRetroativa': dataRetroativa ?? 0,
       'dataVencimentoPagamento': dataVencimentoPagamento != null
           ? Timestamp.fromDate(dataVencimentoPagamento!)
-          : null, // Salvando a data de vencimento como Timestamp
+          : null,
       'contracts': contracts,
-      'registeredAt': registeredAt,
+      'registeredAt': Timestamp.fromDate(registeredAt),
       'situation': situation,
-      'reminderAcknowledged': reminderAcknowledged, // Adicionando campo ao JSON
+      'reminderAcknowledged': reminderAcknowledged,
     };
   }
 
@@ -114,42 +114,41 @@ class ClientModel {
   factory ClientModel.fromJson(Map<String, dynamic> json) {
     return ClientModel(
       clientId: json['clientId'] ?? '',
-      nome: json['nome'] ?? '',
-      cpfcnpj: json['cpfcnpj'] ?? '',
-      inscricaoEstadual: json['inscricaoEstadual'],
-      email: json['email'],
-      telefone: json['telefone'],
-      rua: json['rua'],
-      numero: json['numero'],
-      complemento: json['complemento'],
-      bairro: json['bairro'],
-      cidade: json['cidade'],
-      estado: json['estado'],
-      cep: json['cep'],
-      pais: json['pais'],
-      codigoProduto: json['codigoProduto'],
-      nomeProduto: json['nomeProduto'],
-      valorUnitario: json['valorUnitario'],
-      quantidade: json['quantidade'],
-      ncm: json['ncm'],
-      natureza: json['natureza'],
-      codigoVenda: json['codigoVenda'],
-      dataVenda: json['dataVenda'],
-      dataRetroativa: json['dataRetroativa'],
+      nome: json['nome'] ?? 'Sem Nome',
+      cpfcnpj: json['cpfcnpj'] ?? 'N/A',
+      inscricaoEstadual: json['inscricaoEstadual'] ?? '',
+      email: json['email'] ?? '',
+      telefone: json['telefone'] ?? '',
+      rua: json['rua'] ?? '',
+      numero: json['numero'] ?? '',
+      complemento: json['complemento'] ?? '',
+      bairro: json['bairro'] ?? '',
+      cidade: json['cidade'] ?? '',
+      estado: json['estado'] ?? '',
+      cep: json['cep'] ?? '',
+      pais: json['pais'] ?? '',
+      codigoProduto: json['codigoProduto'] ?? 0,
+      nomeProduto: json['nomeProduto'] ?? 'Produto Desconhecido',
+      valorUnitario: json['valorUnitario'] ?? '0',
+      quantidade: json['quantidade'] ?? 0,
+      ncm: json['ncm'] ?? 0,
+      natureza: json['natureza'] ?? 0,
+      codigoVenda: json['codigoVenda'] ?? 0,
+      dataVenda: json['dataVenda'] ?? 0,
+      dataRetroativa: json['dataRetroativa'] ?? 0,
       dataVencimentoPagamento: json['dataVencimentoPagamento'] != null
           ? (json['dataVencimentoPagamento'] as Timestamp).toDate()
-          : null, // Convertendo Timestamp para DateTime
+          : null,
       contracts: List<String>.from(json['contracts'] ?? []),
       registeredAt: (json['registeredAt'] as Timestamp).toDate(),
       situation: json['situation'] ?? 'Indefinido',
-      reminderAcknowledged: json['reminderAcknowledged'] ?? false, // Define como falso se estiver ausente
+      reminderAcknowledged: json['reminderAcknowledged'] ?? false,
     );
   }
 
   // Método para gerar lembretes de pagamento
   List<DateTime> generatePaymentReminders() {
     if (dataVencimentoPagamento == null) return [];
-
     return [
       dataVencimentoPagamento!.subtract(const Duration(days: 5)),
       dataVencimentoPagamento!.subtract(const Duration(days: 2)),

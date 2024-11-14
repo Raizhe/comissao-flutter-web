@@ -6,6 +6,8 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import '../../../data/repositories/user_repository.dart';
 import '../../../widgets/side_bar_widget.dart';
+import '../../../widgets/client_status_overview_widget.dart';
+import '../clients/controllers/clients_controller.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -15,6 +17,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final UserRepository userRepository = UserRepository();
   late Future<Map<String, int>> metricsFuture;
+  final ClientsController clientsController = Get.put(ClientsController());
 
   Stream<Map<String, int>> _combinedMetricsStream() {
     return FirebaseFirestore.instance.collection('contracts').snapshots().asyncMap((contractSnapshot) async {
@@ -303,18 +306,30 @@ class _HomePageState extends State<HomePage> {
                                 ],
                               ),
                               const SizedBox(width: 30),
-                              Column(
-                                children: [
-                                  const Text(
-                                    'Crescimento vendas',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
+                              Expanded(
+                                child: Column(
+                                  children: [
+                                    const Text(
+                                      'Crescimento vendas',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(height: 10),
-                                  _buildSalesGrowthChart(),
-                                ],
+                                    const SizedBox(height: 10),
+                                    _buildSalesGrowthChart(),
+                                    SizedBox(height: 25,),
+                                    Obx(() {
+                                      if (clientsController.isLoading.value) {
+                                        return const CircularProgressIndicator();
+                                      } else {
+                                        return ClientStatusOverviewWidget(
+                                          clientData: clientsController.clients.map((client) => client.toJson()).toList(),
+                                        );
+                                      }
+                                    }),
+                                  ],
+                                ),
                               ),
                             ],
                           ),
