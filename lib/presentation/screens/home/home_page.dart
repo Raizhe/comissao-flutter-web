@@ -194,11 +194,6 @@ class _HomePageState extends State<HomePage> {
 
 
   @override
-  void initState() {
-    super.initState();
-    metricsFuture = _fetchALLMetrics();
-  }
-  @override
   Widget build(BuildContext context) {
     User? user = FirebaseAuth.instance.currentUser;
 
@@ -241,7 +236,7 @@ class _HomePageState extends State<HomePage> {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
               child: StreamBuilder<Map<String, int>>(
-                stream: _combinedMetricsStream(), // Usando a stream combinada
+                stream: _combinedMetricsStream(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
@@ -260,50 +255,52 @@ class _HomePageState extends State<HomePage> {
                             ),
                           ),
                           const SizedBox(height: 30),
-                          _buildResponsiveGrid(data), // Usando dados atualizados
+                          _buildResponsiveGrid(data),
                           const SizedBox(height: 40),
                           _buildSellerCommissionsCard(),
                           const SizedBox(height: 40),
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
-                              Column(
-                                children: [
-                                  const Text(
-                                    'Desempenho dos Vendedores',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
+                              Expanded(
+                                child: Column(
+                                  children: [
+                                    const Text(
+                                      'Desempenho dos Vendedores',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(height: 10),
-                                  FutureBuilder<Map<String, int>>(
-                                    future: _fetchSellerPerformance(),
-                                    builder: (context, snapshot) {
-                                      if (snapshot.connectionState == ConnectionState.waiting) {
-                                        return const CircularProgressIndicator();
-                                      } else if (snapshot.hasError) {
-                                        return const Text('Erro ao carregar desempenho.');
-                                      } else {
-                                        final sellerData = snapshot.data!;
-                                        return FutureBuilder<Map<String, String>>(
-                                          future: _fetchSellerNames(),
-                                          builder: (context, nameSnapshot) {
-                                            if (nameSnapshot.connectionState == ConnectionState.waiting) {
-                                              return const CircularProgressIndicator();
-                                            } else if (nameSnapshot.hasError) {
-                                              return const Text('Erro ao carregar nomes.');
-                                            } else {
-                                              final sellerNames = nameSnapshot.data!;
-                                              return _buildPieChart(sellerData, sellerNames);
-                                            }
-                                          },
-                                        );
-                                      }
-                                    },
-                                  ),
-                                ],
+                                    const SizedBox(height: 10),
+                                    FutureBuilder<Map<String, int>>(
+                                      future: _fetchSellerPerformance(),
+                                      builder: (context, snapshot) {
+                                        if (snapshot.connectionState == ConnectionState.waiting) {
+                                          return const CircularProgressIndicator();
+                                        } else if (snapshot.hasError) {
+                                          return const Text('Erro ao carregar desempenho.');
+                                        } else {
+                                          final sellerData = snapshot.data!;
+                                          return FutureBuilder<Map<String, String>>(
+                                            future: _fetchSellerNames(),
+                                            builder: (context, nameSnapshot) {
+                                              if (nameSnapshot.connectionState == ConnectionState.waiting) {
+                                                return const CircularProgressIndicator();
+                                              } else if (nameSnapshot.hasError) {
+                                                return const Text('Erro ao carregar nomes.');
+                                              } else {
+                                                final sellerNames = nameSnapshot.data!;
+                                                return _buildPieChart(sellerData, sellerNames);
+                                              }
+                                            },
+                                          );
+                                        }
+                                      },
+                                    ),
+                                  ],
+                                ),
                               ),
                               const SizedBox(width: 30),
                               Expanded(
@@ -318,21 +315,25 @@ class _HomePageState extends State<HomePage> {
                                     ),
                                     const SizedBox(height: 10),
                                     _buildSalesGrowthChart(),
-                                    SizedBox(height: 25,),
-                                    Obx(() {
-                                      if (clientsController.isLoading.value) {
-                                        return const CircularProgressIndicator();
-                                      } else {
-                                        return ClientStatusOverviewWidget(
-                                          clientData: clientsController.clients.map((client) => client.toJson()).toList(),
-                                        );
-                                      }
-                                    }),
+                                    const SizedBox(height: 25),
+
                                   ],
                                 ),
                               ),
                             ],
                           ),
+                          Obx(() {
+                            if (clientsController.isLoading.value) {
+                              return const CircularProgressIndicator();
+                            } else {
+                              return Padding(
+                                padding: const EdgeInsets.all(25.0),
+                                child: ClientStatusOverviewWidget(
+                                  clientData: clientsController.clients.map((client) => client.toJson()).toList(),
+                                ),
+                              );
+                            }
+                          }),
                         ],
                       ),
                     );
@@ -350,6 +351,8 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
+
+
 
   Widget _buildPaymentReminderWidget() {
     return FutureBuilder<List<Map<String, dynamic>>>(
@@ -442,34 +445,6 @@ class _HomePageState extends State<HomePage> {
       },
     );
   }
-
-  // Widget _buildWeeklyBarChart(List<Map<String, dynamic>> data) {
-  //   return SizedBox(
-  //     width: 400,
-  //     height: 300,
-  //     child: BarChart(
-  //       BarChartData(
-  //         alignment: BarChartAlignment.spaceAround,
-  //         maxY: data
-  //                 .map((e) => e['amount'] as double)
-  //                 .reduce((a, b) => a > b ? a : b) +
-  //             5,
-  //         barGroups: data.map((entry) {
-  //           return BarChartGroupData(
-  //             x: entry['week'],
-  //             barRods: [
-  //               BarChartRodData(
-  //                 toY: entry['amount'],
-  //                 color: Colors.green,
-  //                 width: 20,
-  //               ),
-  //             ],
-  //           );
-  //         }).toList(),
-  //       ),
-  //     ),
-  //   );
-  // }
 
   Widget _buildPieChart(
       Map<String, int> sellerData, Map<String, String> sellerNames) {
