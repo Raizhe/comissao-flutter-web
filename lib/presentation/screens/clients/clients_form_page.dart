@@ -98,7 +98,7 @@ class ClientFormPage extends StatelessWidget {
         dataVencimentoPagamento: dataVencimento,
         contracts: [],
         registeredAt: DateTime.now(),
-        situation: 'Ativo',
+        status: 'Ativo',
       );
 
       await _clientController.addClient(client);

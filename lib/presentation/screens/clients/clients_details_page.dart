@@ -73,7 +73,7 @@ class ClientDetailsPage extends StatelessWidget {
       _buildTableRow('Código de Venda', client.codigoVenda?.toString() ?? 'Não disponível'),
       _buildTableRow('Data da Venda', client.dataVenda?.toString() ?? 'Não disponível'),
       _buildTableRow('Data Retroativa', client.dataRetroativa?.toString() ?? 'Não disponível'),
-      _buildTableRow('Situação', client.situation),
+      _buildTableRow('status', client.status),
       _buildTableRow('Registrado em', _formatDate(client.registeredAt)),
     ];
   }

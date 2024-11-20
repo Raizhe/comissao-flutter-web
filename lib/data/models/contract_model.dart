@@ -55,6 +55,98 @@ class ContractModel {
     required this.commission, // Novo campo
   });
 
+  // Método para converter o objeto em JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'contractId': contractId,
+      'clientCNPJ': clientCNPJ,
+      'clientName': clientName,
+      'sellerId': sellerId,
+      'operadorId': operadorId,
+      'preSellerId': preSellerId,
+      'type': type,
+      'amount': amount,
+      'startDate': startDate.toIso8601String(),
+      'endDate': endDate?.toIso8601String(),
+      'status': status,
+      'createdAt': createdAt.toIso8601String(),
+      'paymentMethod': paymentMethod,
+      'installments': installments,
+      'renewalType': renewalType,
+      'salesOrigin': salesOrigin,
+      'address': address,
+      'representanteLegal': representanteLegal,
+      'cpfRepresentante': cpfRepresentante,
+      'emailFinanceiro': emailFinanceiro,
+      'telefone': telefone,
+      'observacoes': observacoes,
+      'feeMensal': feeMensal,
+      'costumerSuccess': costumerSuccess,
+      'commission': commission,
+    };
+  }
+
+  factory ContractModel.empty() {
+    return ContractModel(
+      contractId: '',
+      clientCNPJ: '',
+      clientName: '',
+      sellerId: '',
+      operadorId: null,
+      preSellerId: '',
+      type: '',
+      amount: 0.0,
+      startDate: DateTime.now(),
+      endDate: null,
+      status: 'INDEFINIDO',
+      createdAt: DateTime.now(),
+      paymentMethod: '',
+      installments: 0,
+      renewalType: '',
+      salesOrigin: '',
+      address: '',
+      representanteLegal: '',
+      cpfRepresentante: '',
+      emailFinanceiro: '',
+      telefone: '',
+      observacoes: '',
+      feeMensal: 0.0,
+      costumerSuccess: '',
+      commission: 0.0,
+    );
+  }
+
+
+  // Método para criar o objeto a partir de JSON
+  factory ContractModel.fromJson(Map<String, dynamic> json) {
+    return ContractModel(
+      contractId: json['contractId'] ?? '',
+      clientCNPJ: json['clientCNPJ'] ?? '',
+      clientName: json['clientName'] ?? '',
+      sellerId: json['sellerId'] ?? '',
+      operadorId: json['operadorId'],
+      preSellerId: json['preSellerId'] ?? '',
+      type: json['type'] ?? '',
+      amount: (json['amount'] ?? 0).toDouble(),
+      startDate: DateTime.parse(json['startDate']),
+      endDate: json['endDate'] != null ? DateTime.parse(json['endDate']) : null,
+      status: json['status'] ?? '',
+      createdAt: DateTime.parse(json['createdAt']),
+      paymentMethod: json['paymentMethod'] ?? '',
+      installments: (json['installments'] ?? 0).toInt(),
+      renewalType: json['renewalType'] ?? '',
+      salesOrigin: json['salesOrigin'] ?? '',
+      address: json['address'] ?? '',
+      representanteLegal: json['representanteLegal'] ?? '',
+      cpfRepresentante: json['cpfRepresentante'] ?? '',
+      emailFinanceiro: json['emailFinanceiro'] ?? '',
+      telefone: json['telefone'] ?? '',
+      observacoes: json['observacoes'] ?? '',
+      feeMensal: (json['feeMensal'] ?? 0).toDouble(),
+      costumerSuccess: json['costumerSuccess'] ?? '',
+      commission: (json['commission'] ?? 0).toDouble(),
+    );
+  }
   // Lógica para calcular comissão baseada na forma de pagamento e outras regras
   double calculateCommission() {
     double commissionRate;
