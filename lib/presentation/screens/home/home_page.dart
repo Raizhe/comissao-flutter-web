@@ -8,6 +8,7 @@ import '../../../data/repositories/user_repository.dart';
 import '../../../widgets/side_bar_widget.dart';
 import '../../../widgets/client_status_overview_widget.dart';
 import '../clients/controllers/clients_controller.dart';
+import '../contract/controllers/contracts_controller.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -18,6 +19,8 @@ class _HomePageState extends State<HomePage> {
   final UserRepository userRepository = UserRepository();
   late Future<Map<String, int>> metricsFuture;
   final ClientsController clientsController = Get.put(ClientsController());
+  final ContractController contractController = Get.put(ContractController());
+
 
   Stream<Map<String, int>> _combinedMetricsStream() {
     return FirebaseFirestore.instance.collection('contracts').snapshots().asyncMap((contractSnapshot) async {
@@ -323,7 +326,7 @@ class _HomePageState extends State<HomePage> {
                             ],
                           ),
                           Obx(() {
-                            if (clientsController.isLoading.value) {
+                            if (clientsController.isLoading.value || contractController.isLoading.value) {
                               return const CircularProgressIndicator();
                             } else {
                               return Padding(

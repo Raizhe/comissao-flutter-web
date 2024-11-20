@@ -27,7 +27,7 @@ class ClientModel {
   DateTime? dataVencimentoPagamento;
   List<String> contracts;
   DateTime registeredAt;
-  String situation;
+  String status;
   bool reminderAcknowledged;
 
   ClientModel({
@@ -57,7 +57,7 @@ class ClientModel {
     this.dataVencimentoPagamento,
     required this.contracts,
     required this.registeredAt,
-    required this.situation,
+    required this.status,
     this.reminderAcknowledged = false,
   });
 
@@ -69,7 +69,7 @@ class ClientModel {
       cpfcnpj: 'N/A',
       contracts: [],
       registeredAt: DateTime.now(),
-      situation: 'Indefinido',
+      status: 'Indefinido',
       reminderAcknowledged: false,
     );
   }
@@ -105,7 +105,7 @@ class ClientModel {
           : null,
       'contracts': contracts,
       'registeredAt': Timestamp.fromDate(registeredAt),
-      'situation': situation,
+      'status': status,
       'reminderAcknowledged': reminderAcknowledged,
     };
   }
@@ -141,7 +141,7 @@ class ClientModel {
           : null,
       contracts: List<String>.from(json['contracts'] ?? []),
       registeredAt: (json['registeredAt'] as Timestamp).toDate(),
-      situation: json['situation'] ?? 'Indefinido',
+      status: json['status'] ?? 'Indefinido',
       reminderAcknowledged: json['reminderAcknowledged'] ?? false,
     );
   }

@@ -41,7 +41,7 @@ class _ClientsPageState extends State<ClientsPage> {
         return client.nome.toLowerCase().contains(query.toLowerCase()) ||
             (client.cpfcnpj?.toLowerCase() ?? '').contains(query.toLowerCase()) ||
             (client.telefone?.toLowerCase() ?? '').contains(query.toLowerCase()) ||
-            client.situation.toLowerCase().contains(query.toLowerCase());
+            client.status.toLowerCase().contains(query.toLowerCase());
       }).toList();
     });
   }
@@ -159,7 +159,7 @@ class _ClientsPageState extends State<ClientsPage> {
               if (!isCompact) DataCell(Text(client.cpfcnpj ?? 'Não disponível')),
               if (!isCompact) DataCell(Text(client.telefone ?? 'Não disponível')),
               if (!isCompact) DataCell(Text(client.cidade ?? 'Não disponível')),
-              DataCell(Text(client.situation)),
+              DataCell(Text(client.status)),
               DataCell(
                 IconButton(
                   icon: const Icon(Icons.settings),
