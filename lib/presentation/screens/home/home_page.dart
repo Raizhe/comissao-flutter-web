@@ -25,8 +25,9 @@ class _HomePageState extends State<HomePage> {
   Stream<Map<String, int>> _combinedMetricsStream() {
     return FirebaseFirestore.instance.collection('contracts').snapshots().asyncMap((contractSnapshot) async {
       int salesCount = contractSnapshot.size;
-      int activeContractsCount = contractSnapshot.docs.where((doc) => doc['status'] == 'ativo').length;
-      int inactiveContractsCount = contractSnapshot.docs.where((doc) => doc['status'] == 'cancelado').length;
+      int activeContractsCount = contractSnapshot.docs.where((doc) => doc['status'] == 'Ativo').length;
+      int inactiveContractsCount = contractSnapshot.docs.where((doc) => doc['status'] == 'Cancelado').length;
+      int stopedContractsCount = contractSnapshot.docs.where((doc) => doc['status'] == 'Pausado').length;
 
       // Obtenha a contagem de clientes
       var clientSnapshot = await FirebaseFirestore.instance.collection('clients').get();
@@ -37,6 +38,7 @@ class _HomePageState extends State<HomePage> {
         'clients': clientsCount,
         'contracts': activeContractsCount,
         'inactiveContracts': inactiveContractsCount,
+        'stopedContracts': stopedContractsCount,
       };
     });
   }
@@ -48,14 +50,17 @@ class _HomePageState extends State<HomePage> {
       int clientsCount = 0; // ou ajuste conforme necessário
       int activeContractsCount = 0;
       int inactiveContractsCount = 0;
+      int stopedContractsCount = 0;
 
       for (var doc in snapshot.docs) {
         var data = doc.data();
         salesCount++;
-        if (data['status'] == 'ativo') {
+        if (data['status'] == 'Ativo') {
           activeContractsCount++;
-        } else if (data['status'] == 'cancelado') {
+        } else if (data['status'] == 'Cancelado') {
           inactiveContractsCount++;
+        }else if (data['status'] == 'Pausado') {
+          stopedContractsCount++;
         }
       }
 
@@ -64,6 +69,7 @@ class _HomePageState extends State<HomePage> {
         'clients': clientsCount,
         'contracts': activeContractsCount,
         'inactiveContracts': inactiveContractsCount,
+        'stopedContracts' : stopedContractsCount,
       };
     });
   }
@@ -93,16 +99,20 @@ class _HomePageState extends State<HomePage> {
   Future<Map<String, int>> _fetchALLMetrics() async {
     int salesCount = await _getCount('contracts');
     int clientsCount = await _getCount('clients');
-    int activeContractsCount = await _getCount('contracts', status: 'ativo');
+    int activeContractsCount = await _getCount('contracts', status: 'Ativo');
     int inactiveContractsCount = await _getCount('contracts',
         status:
-            'cancelado'); // Verifique se o status é "cancelado" no Firestore
+            'Cancelado');
+    int stopedContractsCount = await _getCount('contracts',
+        status:
+            'Pausado'); // Verifique se o status é "cancelado" no Firestore
 
     return {
       'sales': salesCount,
       'clients': clientsCount,
       'contracts': activeContractsCount,
       'inactiveContracts': inactiveContractsCount,
+      'stopedContracts': stopedContractsCount,
       // Inclui contratos cancelados
     };
   }
@@ -258,7 +268,7 @@ class _HomePageState extends State<HomePage> {
                             ),
                           ),
                           const SizedBox(height: 30),
-                          _buildResponsiveGrid(data),
+                          _buildMonthlyGrid(data),
                           const SizedBox(height: 40),
                           _buildSellerCommissionsCard(),
                           const SizedBox(height: 40),
@@ -490,22 +500,22 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Future<Map<String, double>> _fetchSellerContributions() async {
-    QuerySnapshot snapshot =
-        await FirebaseFirestore.instance.collection('contracts').get();
-
-    Map<String, double> sellerContributions = {};
-
-    for (var doc in snapshot.docs) {
-      String sellerId = doc['sellerId'];
-      double amount = doc['amount']?.toDouble() ?? 0.0;
-
-      sellerContributions[sellerId] =
-          (sellerContributions[sellerId] ?? 0) + amount;
-    }
-
-    return sellerContributions;
-  }
+  // Future<Map<String, double>> _fetchSellerContributions() async {
+  //   QuerySnapshot snapshot =
+  //       await FirebaseFirestore.instance.collection('contracts').get();
+  //
+  //   Map<String, double> sellerContributions = {};
+  //
+  //   for (var doc in snapshot.docs) {
+  //     String sellerId = doc['sellerId'];
+  //     double amount = doc['amount']?.toDouble() ?? 0.0;
+  //
+  //     sellerContributions[sellerId] =
+  //         (sellerContributions[sellerId] ?? 0) + amount;
+  //   }
+  //
+  //   return sellerContributions;
+  // }
 
   Future<Map<String, double>> _fetchCommissions() async {
     QuerySnapshot snapshot =
@@ -814,85 +824,134 @@ class _HomePageState extends State<HomePage> {
   }
 
 
-  Widget _buildResponsiveGrid(Map<String, int> data) {
+  Widget _buildMonthlyGrid(Map<String, int> data) {
+    final currentMonthIndex = DateTime.now().month;
+    final months = [
+      'Janeiro',
+      'Fevereiro',
+      'Março',
+      'Abril',
+      'Maio',
+      'Junho',
+      'Julho',
+      'Agosto',
+      'Setembro',
+      'Outubro',
+      'Novembro',
+      'Dezembro',
+    ];
+
     return Wrap(
-      spacing: 10,
-      runSpacing: 10,
+      spacing: 20,
+      runSpacing: 20,
       alignment: WrapAlignment.center,
       children: [
         _buildMetricCard(
-          'Vendas',
-          data['sales']!,
-          Colors.orange,
-          '/contracts_page',
-          positiveTrend: true,
+          month: months[currentMonthIndex - 1],
+          subtitle: 'Contratos Ativos',
+          value: data['contracts']!,
+          comparisonValue: data['contracts']! - 10, // Exemplo: diferença fixa
+          color: Colors.green,
+          route: '/contracts_page',
         ),
         _buildMetricCard(
-          'Clientes',
-          data['clients']!,
-          Colors.purple,
-          '/clients_page',
-          positiveTrend: true,
+          month: months[currentMonthIndex - 1],
+          subtitle: 'Contratos Inativos',
+          value: data['inactiveContracts']!,
+          comparisonValue: data['inactiveContracts']! - 5,
+          color: Colors.red,
+          route: '/contracts_page',
         ),
         _buildMetricCard(
-          'Contratos Inativos',
-          data['inactiveContracts']!,
-          Colors.red,
-          '/contracts_page',
-          positiveTrend: false,
+          month: months[currentMonthIndex - 1],
+          subtitle: 'Clientes Ativos',
+          value: data['clients']!,
+          comparisonValue: data['clients']! - 3,
+          color: Colors.green,
+          route: '/clients_page',
         ),
         _buildMetricCard(
-          'Contratos Ativos',
-          data['contracts']!,
-          Colors.green,
-          '/contracts_page',
-          positiveTrend: true,
+          month: months[currentMonthIndex - 1],
+          subtitle: 'Clientes pausados',
+          value: data['stopedContracts']!,
+          comparisonValue: data['stopedContracts']! - 3,
+          color: Colors.orange,
+          route: '/clients_page',
         ),
       ],
     );
   }
-  Widget _buildMetricCard(String title, int value, Color color, String route,
-      {required bool positiveTrend}) {
+
+  Widget _buildMetricCard({
+    required String month,
+    required String subtitle,
+    required int value,
+    required int comparisonValue,
+    required Color color,
+    required String route,
+  }) {
+    // Obtém o índice do mês atual
+    final currentMonthIndex = DateTime.now().month;
+
+    // Lista com os nomes dos meses
+    final months = [
+      'Janeiro',
+      'Fevereiro',
+      'Março',
+      'Abril',
+      'Maio',
+      'Junho',
+      'Julho',
+      'Agosto',
+      'Setembro',
+      'Outubro',
+      'Novembro',
+      'Dezembro',
+    ];
+
+    // Calcula o nome do mês anterior, ajustando para Dezembro se for Janeiro
+    final previousMonth = months[(currentMonthIndex - 2 + 12) % 12];
+
     return GestureDetector(
       onTap: () => Get.toNamed(route),
-      child: MouseRegion(
-        onEnter: (event) => print('Mouse entered: $title'),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          width: 150,
-          height: 150,
-          child: Card(
-            elevation: 5,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(title, style: const TextStyle(fontSize: 14)),
-                  const SizedBox(height: 4),
-                  Text(
-                    value.toString(),
-                    style: TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: color,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Icon(
-                    positiveTrend ? Icons.trending_up : Icons.trending_down,
-                    color: positiveTrend ? Colors.green : Colors.red,
-                    size: 20,
-                  ),
-                ],
+      child: Card(
+        elevation: 5,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(
+                month,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
-            ),
+              const SizedBox(height: 8),
+              Text(
+                subtitle,
+                style: const TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '$value',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '$comparisonValue em $previousMonth',
+                style: const TextStyle(fontSize: 14, color: Colors.grey),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
+
   Widget _buildSalesGrowthChart() {
     return FutureBuilder<List<Map<String, dynamic>>>(
       future: _fetchWeeklySalesData(),

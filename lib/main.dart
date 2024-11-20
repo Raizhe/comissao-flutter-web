@@ -44,18 +44,19 @@ class MyApp extends StatelessWidget {
         GetPage(name: '/login', page: () => const LoginPage()),
         GetPage(name: '/home', page: () => HomePage()),
         GetPage(name: '/client_form', page: () => ClientFormPage()),
-        GetPage(
-            name: '/pre_seller_form', page: () => const PreSellerFormPage()),
+        GetPage(name: '/pre_seller_form', page: () => const PreSellerFormPage()),
         GetPage(name: '/seller_form', page: () => SellerFormPage()),
         GetPage(name: '/user_form', page: () => UserFormPage()),
         GetPage(name: '/contract_form', page: () => const ContractFormPage()),
         GetPage(name: '/lead_form', page: () => const LeadFormPage()),
         GetPage(name: '/leads_page', page: () => const LeadsPage()),
-        GetPage(name: '/contracts_page', page: () => const ContractsPage()),
+        GetPage(name: '/contracts_page', page: () => ContractsPage()),
         GetPage(name: '/clients_page', page: () => const ClientsPage()),
         GetPage(name: '/meet_page', page: () => const MeetPage()),
         GetPage(name: '/operator_form', page: () => OperatorFormPage()),
-        GetPage(name: '/customer_success_form', page: () => CustomerSuccessFormPage()),
+        GetPage(
+            name: '/customer_success_form',
+            page: () => CustomerSuccessFormPage()),
         GetPage(
           name: '/client_details',
           page: () => ClientDetailsPage(

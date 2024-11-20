@@ -17,6 +17,14 @@ class ContractController extends GetxController {
     fetchContracts(); // Busca inicial de contratos ao iniciar
   }
 
+  void sortContracts(bool isAscending) {
+    contracts.sort((a, b) {
+      return isAscending
+          ? a.clientName.compareTo(b.clientName)
+          : b.clientName.compareTo(a.clientName);
+    });
+  }
+
   // Método para adicionar um contrato
   Future<void> addContract(ContractModel contract) async {
     isLoading.value = true;

@@ -1,40 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../../data/models/contract_model.dart';
-import '../../../data/models/seller_model.dart';
-import 'contracts_details_page.dart';
 import 'controllers/contracts_controller.dart';
+import '../../../data/models/contract_model.dart';
 
-class ContractsPage extends StatefulWidget {
-  const ContractsPage({Key? key}) : super(key: key);
-
-  @override
-  _ContractsPageState createState() => _ContractsPageState();
-}
-
-class _ContractsPageState extends State<ContractsPage> {
+class ContractsPage extends StatelessWidget {
   final ContractController _contractController = Get.put(ContractController());
-  bool _isAscending = true;
 
-  @override
-  void initState() {
-    super.initState();
-    _contractController.fetchContracts();
-  }
+  ContractsPage({Key? key}) : super(key: key);
 
-  void _sortContracts() {
-    setState(() {
-      _isAscending = !_isAscending;
-      _contractController.contracts.sort((a, b) {
-        return _isAscending
-            ? a.clientName.compareTo(b.clientName)
-            : b.clientName.compareTo(a.clientName);
-      });
-    });
-  }
-
-  void _showContractOptionsModal(ContractModel contract) {
+  void _showContractOptionsModal(BuildContext context, ContractModel contract) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -44,17 +18,17 @@ class _ContractsPageState extends State<ContractsPage> {
           actions: [
             TextButton(
               onPressed: () {
-                _contractController.updateContractStatus(contract, 'pausado');
+                _contractController.updateContractStatus(contract, 'Pausado');
                 Navigator.of(context).pop();
               },
               child: const Text(
                 'Pausar',
-                style: TextStyle(color: Colors.blue),
+                style: TextStyle(color: Colors.orange),
               ),
             ),
             TextButton(
               onPressed: () {
-                _contractController.updateContractStatus(contract, 'cancelado');
+                _contractController.updateContractStatus(contract, 'Cancelado');
                 Navigator.of(context).pop();
               },
               child: const Text(
@@ -62,12 +36,21 @@ class _ContractsPageState extends State<ContractsPage> {
                 style: TextStyle(color: Colors.red),
               ),
             ),
+            TextButton(
+              onPressed: () {
+                _contractController.updateContractStatus(contract, 'Ativo');
+                Navigator.of(context).pop();
+              },
+              child: const Text(
+                'Ativar',
+                style: TextStyle(color: Colors.green),
+              ),
+            ),
           ],
         );
       },
     );
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -115,12 +98,7 @@ class _ContractsPageState extends State<ContractsPage> {
                         PopupMenuButton<String>(
                           icon: const Icon(Icons.sort),
                           onSelected: (value) {
-                            if (value == 'A-Z') {
-                              setState(() => _isAscending = true);
-                            } else {
-                              setState(() => _isAscending = false);
-                            }
-                            _sortContracts();
+                            _contractController.sortContracts(value == 'A-Z');
                           },
                           itemBuilder: (context) => [
                             const PopupMenuItem(
@@ -151,8 +129,7 @@ class _ContractsPageState extends State<ContractsPage> {
                           );
                         }
 
-                        return _buildAdaptiveContractsTable(
-                            context, _contractController.contracts);
+                        return _buildContractsTable(context);
                       }),
                     ),
                   ],
@@ -165,8 +142,8 @@ class _ContractsPageState extends State<ContractsPage> {
     );
   }
 
-  Widget _buildAdaptiveContractsTable(
-      BuildContext context, List<ContractModel> contracts) {
+  Widget _buildContractsTable(BuildContext context) {
+    final contracts = _contractController.contracts;
     final maxWidth = MediaQuery.of(context).size.width;
     final isCompact = maxWidth < 600;
 
@@ -190,7 +167,7 @@ class _ContractsPageState extends State<ContractsPage> {
         rows: contracts.map((contract) {
           return DataRow(
             cells: [
-              _buildHoverableClientNameCell(contract),
+              _buildClientNameCell(contract),
               if (!isCompact) DataCell(Text(contract.type)),
               if (!isCompact)
                 DataCell(Text('R\$${contract.amount.toStringAsFixed(2)}')),
@@ -207,19 +184,18 @@ class _ContractsPageState extends State<ContractsPage> {
                 IconButton(
                   icon: const Icon(Icons.settings),
                   onPressed: () {
-                    _showContractOptionsModal(contract);
+                    _showContractOptionsModal(context, contract);
                   },
                 ),
               ),
             ],
           );
-
         }).toList(),
       ),
     );
   }
 
-  DataCell _buildHoverableClientNameCell(ContractModel contract) {
+  DataCell _buildClientNameCell(ContractModel contract) {
     bool isHovered = false;
 
     return DataCell(
@@ -248,18 +224,17 @@ class _ContractsPageState extends State<ContractsPage> {
     );
   }
 
+
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
       case 'ativo':
         return Colors.green;
-      case 'em análise':
-        return Colors.orange;
       case 'cancelado':
         return Colors.red;
       case 'pausado':
-        return Colors.blue; // Cor para o status pausado
+        return Colors.orange;
       default:
-        return Colors.black;
+        return Colors.grey; // Cor padrão para status indefinidos
     }
   }
 
