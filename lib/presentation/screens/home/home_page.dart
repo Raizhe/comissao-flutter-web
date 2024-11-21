@@ -9,6 +9,7 @@ import '../../../widgets/side_bar_widget.dart';
 import '../../../widgets/client_status_overview_widget.dart';
 import '../clients/controllers/clients_controller.dart';
 import '../contract/controllers/contracts_controller.dart';
+import 'package:rxdart/rxdart.dart' as rxd;
 
 class HomePage extends StatefulWidget {
   @override
@@ -20,28 +21,57 @@ class _HomePageState extends State<HomePage> {
   late Future<Map<String, int>> metricsFuture;
   final ClientsController clientsController = Get.put(ClientsController());
   final ContractController contractController = Get.put(ContractController());
+  final List<String> months = [
+  'Janeiro',
+  'Fevereiro',
+  'Março',
+  'Abril',
+  'Maio',
+  'Junho',
+  'Julho',
+  'Agosto',
+  'Setembro',
+  'Outubro',
+  'Novembro',
+  'Dezembro',
+  ];
+
+  String selectedMonth = DateTime.now().month.toString(); // Mês atual
+  late int selectedMonthIndex;
+  Map<String, int> monthlyData = {};
 
 
   Stream<Map<String, int>> _combinedMetricsStream() {
-    return FirebaseFirestore.instance.collection('contracts').snapshots().asyncMap((contractSnapshot) async {
-      int salesCount = contractSnapshot.size;
-      int activeContractsCount = contractSnapshot.docs.where((doc) => doc['status'] == 'Ativo').length;
-      int inactiveContractsCount = contractSnapshot.docs.where((doc) => doc['status'] == 'Cancelado').length;
-      int stopedContractsCount = contractSnapshot.docs.where((doc) => doc['status'] == 'Pausado').length;
+    final contractsStream = FirebaseFirestore.instance.collection('contracts').snapshots();
+    final clientsStream = FirebaseFirestore.instance.collection('clients').snapshots();
 
-      // Obtenha a contagem de clientes
-      var clientSnapshot = await FirebaseFirestore.instance.collection('clients').get();
-      int clientsCount = clientSnapshot.size;
+    return rxd.Rx.combineLatest2<QuerySnapshot<Map<String, dynamic>>, QuerySnapshot<Map<String, dynamic>>, Map<String, int>>(
+      contractsStream,
+      clientsStream,
+          (contractsSnapshot, clientsSnapshot) {
+        // Contagem de contratos
+        int salesCount = contractsSnapshot.size;
+        int activeContractsCount = contractsSnapshot.docs.where((doc) => doc['status'] == 'Ativo').length;
+        int inactiveContractsCount = contractsSnapshot.docs.where((doc) => doc['status'] == 'Cancelado').length;
+        int stopedContractsCount = contractsSnapshot.docs.where((doc) => doc['status'] == 'Pausado').length;
 
-      return {
-        'sales': salesCount,
-        'clients': clientsCount,
-        'contracts': activeContractsCount,
-        'inactiveContracts': inactiveContractsCount,
-        'stopedContracts': stopedContractsCount,
-      };
-    });
+        // Contagem de clientes ativos
+        int activeClientsCount = clientsSnapshot.docs
+            .where((doc) => doc.data().containsKey('status') && doc['status'] == 'Ativo')
+            .length;
+
+        return {
+          'sales': salesCount,
+          'clients': activeClientsCount,
+          'contracts': activeContractsCount,
+          'inactiveContracts': inactiveContractsCount,
+          'stopedContracts': stopedContractsCount,
+        };
+      },
+    );
   }
+
+
 
   Stream<Map<String, int>> _metricsStream() {
     // Escuta atualizações em tempo real na coleção de contratos
@@ -50,7 +80,7 @@ class _HomePageState extends State<HomePage> {
       int clientsCount = 0; // ou ajuste conforme necessário
       int activeContractsCount = 0;
       int inactiveContractsCount = 0;
-      int stopedContractsCount = 0;
+      int stoppedContractsCount = 0;
 
       for (var doc in snapshot.docs) {
         var data = doc.data();
@@ -60,7 +90,7 @@ class _HomePageState extends State<HomePage> {
         } else if (data['status'] == 'Cancelado') {
           inactiveContractsCount++;
         }else if (data['status'] == 'Pausado') {
-          stopedContractsCount++;
+          stoppedContractsCount++;
         }
       }
 
@@ -69,7 +99,7 @@ class _HomePageState extends State<HomePage> {
         'clients': clientsCount,
         'contracts': activeContractsCount,
         'inactiveContracts': inactiveContractsCount,
-        'stopedContracts' : stopedContractsCount,
+        'stoppedContracts' : stoppedContractsCount,
       };
     });
   }
@@ -78,6 +108,112 @@ class _HomePageState extends State<HomePage> {
       return snapshot.size;
     });
   }
+
+  Widget _buildMonthlyGrid(Map<String, int> monthlyData) {
+    final months = [
+      'Janeiro',
+      'Fevereiro',
+      'Março',
+      'Abril',
+      'Maio',
+      'Junho',
+      'Julho',
+      'Agosto',
+      'Setembro',
+      'Outubro',
+      'Novembro',
+      'Dezembro',
+    ];
+
+    final previousMonth = months[(selectedMonthIndex - 1 + 12) % 12];
+
+    return Wrap(
+      spacing: 20,
+      runSpacing: 20,
+      alignment: WrapAlignment.center,
+      children: [
+        _buildMetricCard(
+          month: selectedMonth,
+          subtitle: 'Contratos Ativos',
+          value: monthlyData['contracts'] ?? 0,
+          comparisonValue: (monthlyData['contracts'] ?? 0) - 10, // Simulação
+          color: Colors.green,
+          route: '/contracts_page',
+        ),
+        _buildMetricCard(
+          month: selectedMonth,
+          subtitle: 'Contratos Inativos',
+          value: monthlyData['inactiveContracts'] ?? 0,
+          comparisonValue: (monthlyData['inactiveContracts'] ?? 0) - 5,
+          color: Colors.red,
+          route: '/contracts_page',
+        ),
+        _buildMetricCard(
+          month: selectedMonth,
+          subtitle: 'Clientes Ativos',
+          value: monthlyData['clients'] ?? 0,
+          comparisonValue: (monthlyData['clients'] ?? 0) - 3,
+          color: Colors.green,
+          route: '/clients_page',
+        ),
+        _buildMetricCard(
+          month: selectedMonth,
+          subtitle: 'Clientes pausados',
+          value: monthlyData['stoppedContracts'] ?? 0,
+          comparisonValue: (monthlyData['stoppedContracts'] ?? 0) - 3,
+          color: Colors.orange,
+          route: '/clients_page',
+        ),
+      ],
+    );
+  }
+
+  void _onMonthSelected(String month) {
+    setState(() {
+      selectedMonthIndex = months.indexOf(month);
+      selectedMonth = month;
+
+      // Buscar dados do mês selecionado
+      _fetchMetricsForMonth(selectedMonthIndex + 1).then((data) {
+        setState(() {
+          monthlyData = data; // Atualiza os dados dos cards
+        });
+      });
+    });
+  }
+
+  Future<Map<String, int>> _fetchMetricsForMonth(int month) async {
+    final startOfMonth = DateTime(DateTime.now().year, month, 1);
+    final endOfMonth = DateTime(DateTime.now().year, month + 1, 1).subtract(const Duration(days: 1));
+
+    // Filtra os contratos do mês
+    final contractSnapshot = await FirebaseFirestore.instance
+        .collection('contracts')
+        .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth))
+        .where('createdAt', isLessThanOrEqualTo: Timestamp.fromDate(endOfMonth))
+        .get();
+
+    // Filtra os clientes do mês
+    final clientSnapshot = await FirebaseFirestore.instance
+        .collection('clients')
+        .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth))
+        .where('createdAt', isLessThanOrEqualTo: Timestamp.fromDate(endOfMonth))
+        .get();
+
+    final activeContractsCount = contractSnapshot.docs.where((doc) => doc['status'] == 'Ativo').length;
+    final inactiveContractsCount = contractSnapshot.docs.where((doc) => doc['status'] == 'Cancelado').length;
+    final stoppedContractsCount = contractSnapshot.docs.where((doc) => doc['status'] == 'Pausado').length;
+    final activeClientsCount = clientSnapshot.docs.where((doc) => doc['status'] == 'Ativo').length;
+
+    return {
+      'contracts': activeContractsCount,
+      'inactiveContracts': inactiveContractsCount,
+      'stoppedContracts': stoppedContractsCount,
+      'clients': activeClientsCount,
+    };
+  }
+
+
 
 
   Future<void> _signOut() async {
@@ -98,12 +234,12 @@ class _HomePageState extends State<HomePage> {
 
   Future<Map<String, int>> _fetchALLMetrics() async {
     int salesCount = await _getCount('contracts');
-    int clientsCount = await _getCount('clients');
+    int clientsCount = await _getCount('clients', status:  'Ativo');
     int activeContractsCount = await _getCount('contracts', status: 'Ativo');
     int inactiveContractsCount = await _getCount('contracts',
         status:
             'Cancelado');
-    int stopedContractsCount = await _getCount('contracts',
+    int stoppedContractsCount = await _getCount('contracts',
         status:
             'Pausado'); // Verifique se o status é "cancelado" no Firestore
 
@@ -112,7 +248,7 @@ class _HomePageState extends State<HomePage> {
       'clients': clientsCount,
       'contracts': activeContractsCount,
       'inactiveContracts': inactiveContractsCount,
-      'stopedContracts': stopedContractsCount,
+      'stoppedContracts': stoppedContractsCount,
       // Inclui contratos cancelados
     };
   }
@@ -148,6 +284,8 @@ class _HomePageState extends State<HomePage> {
     final snapshot = await query.get();
     return snapshot.size;
   }
+
+
 
   Future<List<Map<String, dynamic>>> _fetchUpcomingPayments() async {
     QuerySnapshot snapshot = await FirebaseFirestore.instance
@@ -199,12 +337,24 @@ class _HomePageState extends State<HomePage> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    selectedMonthIndex = DateTime.now().month - 1; // Mês atual como índice
+    selectedMonth = months[selectedMonthIndex]; // Nome do mês atual
+    _fetchMetricsForMonth(selectedMonthIndex + 1).then((data) {
+      setState(() {
+        monthlyData = data; // Dados iniciais
+      });
+    });
+  }
+  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     // Recarrega as métricas sempre que a página recebe o foco novamente
-    metricsFuture = _fetchALLMetrics();
+    selectedMonthIndex = DateTime.now().month - 1; // Mês atual como índice
+    selectedMonth = months[selectedMonthIndex]; // Nome do mês atual
+    refreshMetrics();
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -259,6 +409,7 @@ class _HomePageState extends State<HomePage> {
                     final data = snapshot.data!;
                     return SingleChildScrollView(
                       child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           const Text(
                             'Drop Lead Dashboard',
@@ -267,8 +418,34 @@ class _HomePageState extends State<HomePage> {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
+                          const SizedBox(height: 20),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Text(
+                                'Selecione o mês: ',
+                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                              ),
+                              DropdownButton<String>(
+                                value: selectedMonth,
+                                items: months.map((month) {
+                                  return DropdownMenuItem<String>(
+                                    value: month,
+                                    child: Text(month),
+                                  );
+                                }).toList(),
+                                onChanged: (value) {
+                                  if (value != null) {
+                                    _onMonthSelected(value);
+                                  }
+                                },
+                              ),
+                            ],
+                          ),
                           const SizedBox(height: 30),
-                          _buildMonthlyGrid(data),
+                          monthlyData.isNotEmpty
+                              ? _buildMonthlyGrid(monthlyData)
+                              : const Center(child: CircularProgressIndicator()),
                           const SizedBox(height: 40),
                           _buildSellerCommissionsCard(),
                           const SizedBox(height: 40),
@@ -299,7 +476,8 @@ class _HomePageState extends State<HomePage> {
                                           return FutureBuilder<Map<String, String>>(
                                             future: _fetchSellerNames(),
                                             builder: (context, nameSnapshot) {
-                                              if (nameSnapshot.connectionState == ConnectionState.waiting) {
+                                              if (nameSnapshot.connectionState ==
+                                                  ConnectionState.waiting) {
                                                 return const CircularProgressIndicator();
                                               } else if (nameSnapshot.hasError) {
                                                 return const Text('Erro ao carregar nomes.');
@@ -329,20 +507,22 @@ class _HomePageState extends State<HomePage> {
                                     const SizedBox(height: 10),
                                     _buildSalesGrowthChart(),
                                     const SizedBox(height: 25),
-
                                   ],
                                 ),
                               ),
                             ],
                           ),
                           Obx(() {
-                            if (clientsController.isLoading.value || contractController.isLoading.value) {
+                            if (clientsController.isLoading.value ||
+                                contractController.isLoading.value) {
                               return const CircularProgressIndicator();
                             } else {
                               return Padding(
                                 padding: const EdgeInsets.all(25.0),
                                 child: ClientStatusOverviewWidget(
-                                  clientData: clientsController.clients.map((client) => client.toJson()).toList(),
+                                  clientData: clientsController.clients
+                                      .map((client) => client.toJson())
+                                      .toList(),
                                 ),
                               );
                             }
@@ -364,8 +544,6 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
-
-
 
   Widget _buildPaymentReminderWidget() {
     return FutureBuilder<List<Map<String, dynamic>>>(
@@ -821,65 +999,6 @@ class _HomePageState extends State<HomePage> {
   // Função para gerar o nome abreviado da semana (Ex: "Sem 42")
   String _getWeekLabel(int weekNumber) {
     return 'Sem ${weekNumber.toString()}';
-  }
-
-
-  Widget _buildMonthlyGrid(Map<String, int> data) {
-    final currentMonthIndex = DateTime.now().month;
-    final months = [
-      'Janeiro',
-      'Fevereiro',
-      'Março',
-      'Abril',
-      'Maio',
-      'Junho',
-      'Julho',
-      'Agosto',
-      'Setembro',
-      'Outubro',
-      'Novembro',
-      'Dezembro',
-    ];
-
-    return Wrap(
-      spacing: 20,
-      runSpacing: 20,
-      alignment: WrapAlignment.center,
-      children: [
-        _buildMetricCard(
-          month: months[currentMonthIndex - 1],
-          subtitle: 'Contratos Ativos',
-          value: data['contracts']!,
-          comparisonValue: data['contracts']! - 10, // Exemplo: diferença fixa
-          color: Colors.green,
-          route: '/contracts_page',
-        ),
-        _buildMetricCard(
-          month: months[currentMonthIndex - 1],
-          subtitle: 'Contratos Inativos',
-          value: data['inactiveContracts']!,
-          comparisonValue: data['inactiveContracts']! - 5,
-          color: Colors.red,
-          route: '/contracts_page',
-        ),
-        _buildMetricCard(
-          month: months[currentMonthIndex - 1],
-          subtitle: 'Clientes Ativos',
-          value: data['clients']!,
-          comparisonValue: data['clients']! - 3,
-          color: Colors.green,
-          route: '/clients_page',
-        ),
-        _buildMetricCard(
-          month: months[currentMonthIndex - 1],
-          subtitle: 'Clientes pausados',
-          value: data['stopedContracts']!,
-          comparisonValue: data['stopedContracts']! - 3,
-          color: Colors.orange,
-          route: '/clients_page',
-        ),
-      ],
-    );
   }
 
   Widget _buildMetricCard({

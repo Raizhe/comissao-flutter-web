@@ -1,60 +1,56 @@
-import 'package:comissao_flutter_web/presentation/screens/clients/clients_details_page.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'controllers/clients_controller.dart';
 import '../../../data/models/clients_model.dart';
 
-class ClientsPage extends StatefulWidget {
-  const ClientsPage({Key? key}) : super(key: key);
+class ClientsPage extends StatelessWidget {
+  final ClientsController _clientsController = Get.put(ClientsController());
 
-  @override
-  _ClientsPageState createState() => _ClientsPageState();
-}
+  ClientsPage({Key? key}) : super(key: key);
 
-class _ClientsPageState extends State<ClientsPage> {
-  List<ClientModel> _clients = [];
-  List<ClientModel> _filteredClients = [];
-  bool _isAscending = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchClients().listen((clients) {
-      setState(() {
-        _clients = clients;
-        _filteredClients = clients;
-      });
-    });
-  }
-
-  Stream<List<ClientModel>> _fetchClients() {
-    return FirebaseFirestore.instance.collection('clients').snapshots().map(
-          (snapshot) => snapshot.docs.map((doc) {
-        return ClientModel.fromJson(doc.data() as Map<String, dynamic>);
-      }).toList(),
+  void _showClientOptionsModal(BuildContext context, ClientModel client) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Opções do Cliente'),
+          content: const Text('Escolha uma ação para este cliente.'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                _clientsController.updateClientStatus(client, 'Pausado');
+                Navigator.of(context).pop();
+              },
+              child: const Text(
+                'Pausar',
+                style: TextStyle(color: Colors.orange),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                _clientsController.updateClientStatus(client, 'Cancelado');
+                Navigator.of(context).pop();
+              },
+              child: const Text(
+                'Cancelar',
+                style: TextStyle(color: Colors.red),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                _clientsController.updateClientStatus(client, 'Ativo');
+                Navigator.of(context).pop();
+              },
+              child: const Text(
+                'Ativar',
+                style: TextStyle(color: Colors.green),
+              ),
+            ),
+          ],
+        );
+      },
     );
-  }
-
-  void _searchClients(String query) {
-    setState(() {
-      _filteredClients = _clients.where((client) {
-        return client.nome.toLowerCase().contains(query.toLowerCase()) ||
-            (client.cpfcnpj?.toLowerCase() ?? '').contains(query.toLowerCase()) ||
-            (client.telefone?.toLowerCase() ?? '').contains(query.toLowerCase()) ||
-            client.status.toLowerCase().contains(query.toLowerCase());
-      }).toList();
-    });
-  }
-
-  void _sortClients() {
-    setState(() {
-      _isAscending = !_isAscending;
-      _filteredClients.sort((a, b) {
-        return _isAscending
-            ? a.nome.compareTo(b.nome)
-            : b.nome.compareTo(a.nome);
-      });
-    });
   }
 
   @override
@@ -62,6 +58,14 @@ class _ClientsPageState extends State<ClientsPage> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Clientes'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add),
+            onPressed: () {
+              Get.toNamed('/client_form');
+            },
+          ),
+        ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -82,23 +86,20 @@ class _ClientsPageState extends State<ClientsPage> {
                         Expanded(
                           child: TextField(
                             decoration: const InputDecoration(
-                              hintText: 'Buscar por nome, CNPJ/CPF, telefone ou situação',
+                              hintText: 'Buscar por nome, CNPJ/CPF ou status',
                               border: OutlineInputBorder(),
                               prefixIcon: Icon(Icons.search),
                             ),
-                            onSubmitted: _searchClients,
+                            onSubmitted: (query) {
+                              _clientsController.searchClients(query);
+                            },
                           ),
                         ),
                         const SizedBox(width: 8),
                         PopupMenuButton<String>(
                           icon: const Icon(Icons.sort),
                           onSelected: (value) {
-                            if (value == 'A-Z') {
-                              setState(() => _isAscending = true);
-                            } else {
-                              setState(() => _isAscending = false);
-                            }
-                            _sortClients();
+                            _clientsController.sortClients(value == 'A-Z');
                           },
                           itemBuilder: (context) => [
                             const PopupMenuItem(
@@ -115,11 +116,22 @@ class _ClientsPageState extends State<ClientsPage> {
                     ),
                     const SizedBox(height: 16),
                     Expanded(
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          return _buildAdaptiveClientTable(constraints.maxWidth);
-                        },
-                      ),
+                      child: Obx(() {
+                        if (_clientsController.isLoading.value) {
+                          return const Center(child: CircularProgressIndicator());
+                        }
+
+                        if (_clientsController.clients.isEmpty) {
+                          return const Center(
+                            child: Text(
+                              'Nenhum cliente encontrado.',
+                              style: TextStyle(fontSize: 18),
+                            ),
+                          );
+                        }
+
+                        return _buildClientsTable(context);
+                      }),
                     ),
                   ],
                 ),
@@ -131,7 +143,9 @@ class _ClientsPageState extends State<ClientsPage> {
     );
   }
 
-  Widget _buildAdaptiveClientTable(double maxWidth) {
+  Widget _buildClientsTable(BuildContext context) {
+    final clients = _clientsController.clients;
+    final maxWidth = MediaQuery.of(context).size.width;
     final isCompact = maxWidth < 600;
 
     return SingleChildScrollView(
@@ -148,23 +162,29 @@ class _ClientsPageState extends State<ClientsPage> {
           const DataColumn(label: Text('Nome')),
           if (!isCompact) const DataColumn(label: Text('CNPJ/CPF')),
           if (!isCompact) const DataColumn(label: Text('Telefone')),
-          if (!isCompact) const DataColumn(label: Text('Cidade')),
-          const DataColumn(label: Text('Situação')),
+          const DataColumn(label: Text('Status')),
           const DataColumn(label: Text('Ações')),
         ],
-        rows: _filteredClients.map((client) {
+        rows: clients.map((client) {
           return DataRow(
             cells: [
-              _buildHoverableClientNameCell(client),
+              _buildClientNameCell(client),
               if (!isCompact) DataCell(Text(client.cpfcnpj ?? 'Não disponível')),
               if (!isCompact) DataCell(Text(client.telefone ?? 'Não disponível')),
-              if (!isCompact) DataCell(Text(client.cidade ?? 'Não disponível')),
-              DataCell(Text(client.status)),
+              DataCell(
+                Text(
+                  client.status,
+                  style: TextStyle(
+                    color: _getStatusColor(client.status),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
               DataCell(
                 IconButton(
                   icon: const Icon(Icons.settings),
                   onPressed: () {
-                    Get.toNamed('/client_form', arguments: client);
+                    _showClientOptionsModal(context, client);
                   },
                 ),
               ),
@@ -175,7 +195,7 @@ class _ClientsPageState extends State<ClientsPage> {
     );
   }
 
-  DataCell _buildHoverableClientNameCell(ClientModel client) {
+  DataCell _buildClientNameCell(ClientModel client) {
     bool isHovered = false;
 
     return DataCell(
@@ -202,5 +222,18 @@ class _ClientsPageState extends State<ClientsPage> {
         },
       ),
     );
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'ativo':
+        return Colors.green;
+      case 'cancelado':
+        return Colors.red;
+      case 'pausado':
+        return Colors.orange;
+      default:
+        return Colors.grey; // Cor padrão para status indefinidos
+    }
   }
 }
