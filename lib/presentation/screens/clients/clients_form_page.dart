@@ -23,16 +23,6 @@ class ClientFormPage extends StatelessWidget {
   final _estadoController = TextEditingController();
   final _cepController = MaskedTextController(mask: '00000-000');
   final _paisController = TextEditingController();
-  final _codigoProdutoController = TextEditingController();
-  final _nomeProdutoController = TextEditingController();
-  final _valorUnitarioController = MoneyMaskedTextController(
-    decimalSeparator: ',',
-    thousandSeparator: '.',
-    leftSymbol: 'R\$ ',
-  );
-  final _quantidadeController = TextEditingController();
-  final _ncmController = TextEditingController();
-  final _naturezaController = TextEditingController();
   final _codigoVendaController = TextEditingController();
   final _dataVendaController = TextEditingController();
   final _dataRetroativaController = TextEditingController();
@@ -86,12 +76,6 @@ class ClientFormPage extends StatelessWidget {
         estado: _estadoController.text.trim(),
         cep: _cepController.text.trim(),
         pais: _paisController.text.trim(),
-        codigoProduto: int.tryParse(_codigoProdutoController.text.trim()),
-        nomeProduto: _nomeProdutoController.text.trim(),
-        valorUnitario: _valorUnitarioController.text.trim(),
-        quantidade: int.tryParse(_quantidadeController.text.trim()) ?? 1,
-        ncm: int.tryParse(_ncmController.text.trim()),
-        natureza: int.tryParse(_naturezaController.text.trim()),
         codigoVenda: int.tryParse(_codigoVendaController.text.trim()),
         dataVenda: int.tryParse(_dataVendaController.text.trim()),
         dataRetroativa: int.tryParse(_dataRetroativaController.text.trim()),
@@ -124,12 +108,6 @@ class ClientFormPage extends StatelessWidget {
     _estadoController.clear();
     _cepController.updateText('');
     _paisController.clear();
-    _codigoProdutoController.clear();
-    _nomeProdutoController.clear();
-    _valorUnitarioController.updateValue(0);
-    _quantidadeController.clear();
-    _ncmController.clear();
-    _naturezaController.clear();
     _codigoVendaController.clear();
     _dataVendaController.clear();
     _dataRetroativaController.clear();
@@ -232,17 +210,6 @@ class ClientFormPage extends StatelessWidget {
         _buildTextField(_cidadeController, 'Cidade'),
         _buildTextField(_estadoController, 'Estado'),
         _buildTextField(_paisController, 'País'),
-        _buildTextField(_codigoProdutoController, 'Código do Produto',
-            TextInputType.number),
-        _buildTextField(_nomeProdutoController, 'Nome do Produto'),
-        _buildTextField(
-            _valorUnitarioController, 'Valor Unitário', TextInputType.number),
-        _buildTextField(
-            _quantidadeController, 'Quantidade', TextInputType.number),
-        _buildTextField(_ncmController, 'NCM', TextInputType.number),
-        _buildTextField(_naturezaController, 'Natureza', TextInputType.number),
-        _buildTextField(
-            _codigoVendaController, 'Código da Venda', TextInputType.number),
         GestureDetector(
           onTap: () => _selectDate(context, _dataVencimentoPagamentoController),
           child: AbsorbPointer(

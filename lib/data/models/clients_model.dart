@@ -15,12 +15,6 @@ class ClientModel {
   String? estado;
   String? cep;
   String? pais;
-  int? codigoProduto;
-  String? nomeProduto;
-  String? valorUnitario;
-  int? quantidade;
-  int? ncm;
-  int? natureza;
   int? codigoVenda;
   int? dataVenda;
   int? dataRetroativa;
@@ -45,12 +39,6 @@ class ClientModel {
     this.estado,
     this.cep,
     this.pais,
-    this.codigoProduto,
-    this.nomeProduto,
-    this.valorUnitario,
-    this.quantidade,
-    this.ncm,
-    this.natureza,
     this.codigoVenda,
     this.dataVenda,
     this.dataRetroativa,
@@ -91,12 +79,6 @@ class ClientModel {
       'estado': estado ?? '',
       'cep': cep ?? '',
       'pais': pais ?? '',
-      'codigoProduto': codigoProduto ?? 0,
-      'nomeProduto': nomeProduto ?? 'Produto Desconhecido',
-      'valorUnitario': valorUnitario ?? '0',
-      'quantidade': quantidade ?? 0,
-      'ncm': ncm ?? 0,
-      'natureza': natureza ?? 0,
       'codigoVenda': codigoVenda ?? 0,
       'dataVenda': dataVenda ?? 0,
       'dataRetroativa': dataRetroativa ?? 0,
@@ -127,13 +109,6 @@ class ClientModel {
       estado: json['estado'] ?? '',
       cep: json['cep'] ?? '',
       pais: json['pais'] ?? '',
-      codigoProduto: json['codigoProduto'] ?? 0,
-      nomeProduto: json['nomeProduto'] ?? 'Produto Desconhecido',
-      valorUnitario: json['valorUnitario'] ?? '0',
-      quantidade: json['quantidade'] ?? 0,
-      ncm: json['ncm'] ?? 0,
-      natureza: json['natureza'] ?? 0,
-      codigoVenda: json['codigoVenda'] ?? 0,
       dataVenda: json['dataVenda'] ?? 0,
       dataRetroativa: json['dataRetroativa'] ?? 0,
       dataVencimentoPagamento: json['dataVencimentoPagamento'] != null

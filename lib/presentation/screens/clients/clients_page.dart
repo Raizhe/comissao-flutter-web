@@ -163,7 +163,7 @@ class ClientsPage extends StatelessWidget {
           if (!isCompact) const DataColumn(label: Text('CNPJ/CPF')),
           if (!isCompact) const DataColumn(label: Text('Telefone')),
           const DataColumn(label: Text('Status')),
-          const DataColumn(label: Text('Ações')),
+          //const DataColumn(label: Text('Ações')),
         ],
         rows: clients.map((client) {
           return DataRow(
@@ -180,14 +180,14 @@ class ClientsPage extends StatelessWidget {
                   ),
                 ),
               ),
-              DataCell(
-                IconButton(
-                  icon: const Icon(Icons.settings),
-                  onPressed: () {
-                    _showClientOptionsModal(context, client);
-                  },
-                ),
-              ),
+              // DataCell(
+              //   IconButton(
+              //     icon: const Icon(Icons.settings),
+              //     onPressed: () {
+              //      // _showClientOptionsModal(context, client);
+              //     },
+              //   ),
+              // ),
             ],
           );
         }).toList(),
@@ -225,15 +225,27 @@ class ClientsPage extends StatelessWidget {
   }
 
   Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'ativo':
+    switch (status.toUpperCase()) {
+      case 'ATIVO':
         return Colors.green;
-      case 'cancelado':
+      case 'CANCELADO':
         return Colors.red;
-      case 'pausado':
+      case 'DOWNSSELL':
         return Colors.orange;
+      case 'ENCERRAMENTO':
+        return Colors.yellow[700]!;
+      case 'INATIVO':
+        return Colors.grey;
+      case 'RENOVADO':
+        return Colors.purple;
+      case 'RENOVAÇÃO AUTOMÁTICA':
+        return Colors.purple[200]!;
+      case 'UPSELL':
+        return Colors.green;
+      case 'PAUSADO':
+        return Colors.blue;
       default:
-        return Colors.grey; // Cor padrão para status indefinidos
+        return Colors.grey.shade300;
     }
   }
 }

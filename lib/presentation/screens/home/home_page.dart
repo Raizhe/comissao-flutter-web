@@ -5,11 +5,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import '../../../data/repositories/user_repository.dart';
+import '../../../widgets/monthly_carousel_widget.dart';
 import '../../../widgets/side_bar_widget.dart';
 import '../../../widgets/client_status_overview_widget.dart';
 import '../clients/controllers/clients_controller.dart';
 import '../contract/controllers/contracts_controller.dart';
 import 'package:rxdart/rxdart.dart' as rxd;
+import 'package:carousel_slider/carousel_slider.dart';
+import 'package:carousel_slider/carousel_controller.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -21,189 +24,243 @@ class _HomePageState extends State<HomePage> {
   late Future<Map<String, int>> metricsFuture;
   final ClientsController clientsController = Get.put(ClientsController());
   final ContractController contractController = Get.put(ContractController());
+  final CarouselController _carouselController = CarouselController();
   final List<String> months = [
-  'Janeiro',
-  'Fevereiro',
-  'Março',
-  'Abril',
-  'Maio',
-  'Junho',
-  'Julho',
-  'Agosto',
-  'Setembro',
-  'Outubro',
-  'Novembro',
-  'Dezembro',
+    'Janeiro',
+    'Fevereiro',
+    'Março',
+    'Abril',
+    'Maio',
+    'Junho',
+    'Julho',
+    'Agosto',
+    'Setembro',
+    'Outubro',
+    'Novembro',
+    'Dezembro',
   ];
 
   String selectedMonth = DateTime.now().month.toString(); // Mês atual
   late int selectedMonthIndex;
+  Map<String, Map<String, int>> monthlyDataMap =
+      {}; // Armazena os dados para cada mês
   Map<String, int> monthlyData = {};
 
+  int _currentIndex = 0; // Índice da página atual do carrossel
+  final PageController _pageController =
+      PageController(); // Controlador de página para o carrossel
 
+// Stream que combina os dados de contracts e clients em tempo real
   Stream<Map<String, int>> _combinedMetricsStream() {
-    final contractsStream = FirebaseFirestore.instance.collection('contracts').snapshots();
-    final clientsStream = FirebaseFirestore.instance.collection('clients').snapshots();
+    final contractsStream =
+        FirebaseFirestore.instance.collection('contracts').snapshots();
+    final clientsStream =
+        FirebaseFirestore.instance.collection('clients').snapshots();
 
-    return rxd.Rx.combineLatest2<QuerySnapshot<Map<String, dynamic>>, QuerySnapshot<Map<String, dynamic>>, Map<String, int>>(
+    return rxd.Rx.combineLatest2<QuerySnapshot<Map<String, dynamic>>,
+        QuerySnapshot<Map<String, dynamic>>, Map<String, int>>(
       contractsStream,
       clientsStream,
-          (contractsSnapshot, clientsSnapshot) {
-        // Contagem de contratos
-        int salesCount = contractsSnapshot.size;
-        int activeContractsCount = contractsSnapshot.docs.where((doc) => doc['status'] == 'Ativo').length;
-        int inactiveContractsCount = contractsSnapshot.docs.where((doc) => doc['status'] == 'Cancelado').length;
-        int stopedContractsCount = contractsSnapshot.docs.where((doc) => doc['status'] == 'Pausado').length;
+      (contractsSnapshot, clientsSnapshot) {
+        // Processamento dos contratos
+        final activeContractsCount = contractsSnapshot.docs
+            .where((doc) => doc['status'] == 'Ativo')
+            .length;
+        final inactiveContractsCount = contractsSnapshot.docs
+            .where((doc) => doc['status'] == 'Cancelado')
+            .length;
+        final stoppedContractsCount = contractsSnapshot.docs
+            .where((doc) => doc['status'] == 'Pausado')
+            .length;
 
-        // Contagem de clientes ativos
-        int activeClientsCount = clientsSnapshot.docs
-            .where((doc) => doc.data().containsKey('status') && doc['status'] == 'Ativo')
+        // Processamento dos clientes
+        final activeClientsCount = clientsSnapshot.docs
+            .where((doc) => doc['status'] == 'Ativo')
+            .length;
+        final inactiveClientsCount = clientsSnapshot.docs
+            .where((doc) => doc['status'] == 'Inativo')
+            .length;
+        final canceledClientsCount = clientsSnapshot.docs
+            .where((doc) => doc['status'] == 'Cancelado')
+            .length;
+        final downsellClientsCount = clientsSnapshot.docs
+            .where((doc) => doc['status'] == 'Downsell')
             .length;
 
         return {
-          'sales': salesCount,
-          'clients': activeClientsCount,
-          'contracts': activeContractsCount,
+          'activeContracts': activeContractsCount,
           'inactiveContracts': inactiveContractsCount,
-          'stopedContracts': stopedContractsCount,
+          'stoppedContracts': stoppedContractsCount,
+          'activeClients': activeClientsCount,
+          'inactiveClients': inactiveClientsCount,
+          'canceledClients': canceledClientsCount,
+          'downsellClients': downsellClientsCount,
         };
       },
     );
   }
 
-
-
   Stream<Map<String, int>> _metricsStream() {
     // Escuta atualizações em tempo real na coleção de contratos
-    return FirebaseFirestore.instance.collection('contracts').snapshots().map((snapshot) {
+    return FirebaseFirestore.instance
+        .collection('contracts')
+        .snapshots()
+        .map((snapshot) {
       int salesCount = 0;
-      int clientsCount = 0; // ou ajuste conforme necessário
+      int clientsCount = 0; // Total de clientes (ajuste conforme necessário)
+
+      // Variáveis para contar o status dos contratos
       int activeContractsCount = 0;
       int inactiveContractsCount = 0;
       int stoppedContractsCount = 0;
+      int downsellContractsCount = 0;
+      int encerramentoContractsCount = 0;
+      int renovadoContractsCount = 0;
+      int renovacaoAutomaticaContractsCount = 0;
+      int upsellContractsCount = 0;
 
       for (var doc in snapshot.docs) {
         var data = doc.data();
         salesCount++;
-        if (data['status'] == 'Ativo') {
-          activeContractsCount++;
-        } else if (data['status'] == 'Cancelado') {
-          inactiveContractsCount++;
-        }else if (data['status'] == 'Pausado') {
-          stoppedContractsCount++;
+
+        // Contagem de contratos conforme o status
+        switch (data['status']) {
+          case 'Ativo':
+            activeContractsCount++;
+            break;
+          case 'Cancelado':
+            inactiveContractsCount++;
+            break;
+          case 'Pausado':
+            stoppedContractsCount++;
+            break;
+          case 'Downsell':
+            downsellContractsCount++;
+            break;
+          case 'Encerramento':
+            encerramentoContractsCount++;
+            break;
+          case 'Renovado':
+            renovadoContractsCount++;
+            break;
+          case 'Renovação Automática':
+            renovacaoAutomaticaContractsCount++;
+            break;
+          case 'Upsell':
+            upsellContractsCount++;
+            break;
+          default:
+            break;
         }
       }
 
       return {
         'sales': salesCount,
         'clients': clientsCount,
-        'contracts': activeContractsCount,
+        'activeContracts': activeContractsCount,
         'inactiveContracts': inactiveContractsCount,
-        'stoppedContracts' : stoppedContractsCount,
+        'stoppedContracts': stoppedContractsCount,
+        'downsellContracts': downsellContractsCount,
+        'encerramentoContracts': encerramentoContractsCount,
+        'renovadoContracts': renovadoContractsCount,
+        'renovacaoAutomaticaContracts': renovacaoAutomaticaContractsCount,
+        'upsellContracts': upsellContractsCount,
       };
     });
   }
+
   Stream<int> _clientsStream() {
-    return FirebaseFirestore.instance.collection('clients').snapshots().map((snapshot) {
+    return FirebaseFirestore.instance
+        .collection('clients')
+        .snapshots()
+        .map((snapshot) {
       return snapshot.size;
     });
-  }
-
-  Widget _buildMonthlyGrid(Map<String, int> monthlyData) {
-    final months = [
-      'Janeiro',
-      'Fevereiro',
-      'Março',
-      'Abril',
-      'Maio',
-      'Junho',
-      'Julho',
-      'Agosto',
-      'Setembro',
-      'Outubro',
-      'Novembro',
-      'Dezembro',
-    ];
-
-    final previousMonth = months[(selectedMonthIndex - 1 + 12) % 12];
-
-    return Wrap(
-      spacing: 20,
-      runSpacing: 20,
-      alignment: WrapAlignment.center,
-      children: [
-        _buildMetricCard(
-          month: selectedMonth,
-          subtitle: 'Contratos Ativos',
-          value: monthlyData['contracts'] ?? 0,
-          comparisonValue: (monthlyData['contracts'] ?? 0) - 10, // Simulação
-          color: Colors.green,
-          route: '/contracts_page',
-        ),
-        _buildMetricCard(
-          month: selectedMonth,
-          subtitle: 'Contratos Inativos',
-          value: monthlyData['inactiveContracts'] ?? 0,
-          comparisonValue: (monthlyData['inactiveContracts'] ?? 0) - 5,
-          color: Colors.red,
-          route: '/contracts_page',
-        ),
-        _buildMetricCard(
-          month: selectedMonth,
-          subtitle: 'Clientes Ativos',
-          value: monthlyData['clients'] ?? 0,
-          comparisonValue: (monthlyData['clients'] ?? 0) - 3,
-          color: Colors.green,
-          route: '/clients_page',
-        ),
-        _buildMetricCard(
-          month: selectedMonth,
-          subtitle: 'Clientes pausados',
-          value: monthlyData['stoppedContracts'] ?? 0,
-          comparisonValue: (monthlyData['stoppedContracts'] ?? 0) - 3,
-          color: Colors.orange,
-          route: '/clients_page',
-        ),
-      ],
-    );
   }
 
   void _onMonthSelected(String month) {
     setState(() {
       selectedMonthIndex = months.indexOf(month);
       selectedMonth = month;
-
-      // Buscar dados do mês selecionado
-      _fetchMetricsForMonth(selectedMonthIndex + 1).then((data) {
-        setState(() {
-          monthlyData = data; // Atualiza os dados dos cards
-        });
-      });
+      if (monthlyDataMap.containsKey(selectedMonth)) {
+        monthlyData = monthlyDataMap[selectedMonth]!;
+      } else {
+        monthlyData = {};
+      }
     });
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchMonthlySalesData() async {
+    try {
+      QuerySnapshot snapshot =
+          await FirebaseFirestore.instance.collection('contracts').get();
+
+      // Mapeia os meses e soma as vendas para cada mês
+      Map<int, double> monthlySales = {};
+
+      for (var doc in snapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>?;
+
+        if (data != null) {
+          // Validação de `startDate`
+          DateTime? startDate;
+          if (data['startDate'] is Timestamp) {
+            startDate = (data['startDate'] as Timestamp).toDate();
+          } else {
+            continue; // Ignora documentos inválidos
+          }
+
+          // Validação de `feeMensal`
+          double feeMensal = data['feeMensal']?.toDouble() ?? 0.0;
+
+          // Garantir que a data de início seja válida
+          if (startDate != null) {
+            int month = startDate.month;
+            monthlySales[month] = (monthlySales[month] ?? 0) + feeMensal;
+          }
+        }
+      }
+
+      // Converte o Map em uma lista para o gráfico
+      return monthlySales.entries
+          .map((entry) => {'month': entry.key, 'amount': entry.value})
+          .toList();
+    } catch (e) {
+      print('Erro ao carregar dados: $e');
+      rethrow;
+    }
   }
 
   Future<Map<String, int>> _fetchMetricsForMonth(int month) async {
     final startOfMonth = DateTime(DateTime.now().year, month, 1);
-    final endOfMonth = DateTime(DateTime.now().year, month + 1, 1).subtract(const Duration(days: 1));
+    final endOfMonth = DateTime(DateTime.now().year, month + 1, 1)
+        .subtract(const Duration(days: 1));
 
     // Filtra os contratos do mês
     final contractSnapshot = await FirebaseFirestore.instance
         .collection('contracts')
-        .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth))
+        .where('createdAt',
+            isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth))
         .where('createdAt', isLessThanOrEqualTo: Timestamp.fromDate(endOfMonth))
         .get();
 
     // Filtra os clientes do mês
     final clientSnapshot = await FirebaseFirestore.instance
         .collection('clients')
-        .where('createdAt', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth))
+        .where('createdAt',
+            isGreaterThanOrEqualTo: Timestamp.fromDate(startOfMonth))
         .where('createdAt', isLessThanOrEqualTo: Timestamp.fromDate(endOfMonth))
         .get();
 
-    final activeContractsCount = contractSnapshot.docs.where((doc) => doc['status'] == 'Ativo').length;
-    final inactiveContractsCount = contractSnapshot.docs.where((doc) => doc['status'] == 'Cancelado').length;
-    final stoppedContractsCount = contractSnapshot.docs.where((doc) => doc['status'] == 'Pausado').length;
-    final activeClientsCount = clientSnapshot.docs.where((doc) => doc['status'] == 'Ativo').length;
+    final activeContractsCount =
+        contractSnapshot.docs.where((doc) => doc['status'] == 'Ativo').length;
+    final inactiveContractsCount = contractSnapshot.docs
+        .where((doc) => doc['status'] == 'Cancelado')
+        .length;
+    final stoppedContractsCount =
+        contractSnapshot.docs.where((doc) => doc['status'] == 'Pausado').length;
+    final activeClientsCount =
+        clientSnapshot.docs.where((doc) => doc['status'] == 'Ativo').length;
 
     return {
       'contracts': activeContractsCount,
@@ -212,9 +269,6 @@ class _HomePageState extends State<HomePage> {
       'clients': activeClientsCount,
     };
   }
-
-
-
 
   Future<void> _signOut() async {
     await FirebaseAuth.instance.signOut();
@@ -234,14 +288,12 @@ class _HomePageState extends State<HomePage> {
 
   Future<Map<String, int>> _fetchALLMetrics() async {
     int salesCount = await _getCount('contracts');
-    int clientsCount = await _getCount('clients', status:  'Ativo');
+    int clientsCount = await _getCount('clients', status: 'Ativo');
     int activeContractsCount = await _getCount('contracts', status: 'Ativo');
-    int inactiveContractsCount = await _getCount('contracts',
-        status:
-            'Cancelado');
+    int inactiveContractsCount =
+        await _getCount('contracts', status: 'Cancelado');
     int stoppedContractsCount = await _getCount('contracts',
-        status:
-            'Pausado'); // Verifique se o status é "cancelado" no Firestore
+        status: 'Pausado'); // Verifique se o status é "cancelado" no Firestore
 
     return {
       'sales': salesCount,
@@ -284,8 +336,6 @@ class _HomePageState extends State<HomePage> {
     final snapshot = await query.get();
     return snapshot.size;
   }
-
-
 
   Future<List<Map<String, dynamic>>> _fetchUpcomingPayments() async {
     QuerySnapshot snapshot = await FirebaseFirestore.instance
@@ -347,6 +397,7 @@ class _HomePageState extends State<HomePage> {
       });
     });
   }
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
@@ -389,158 +440,189 @@ class _HomePageState extends State<HomePage> {
           } else if (snapshot.hasData) {
             return SidebarWidget(role: snapshot.data!);
           } else {
-            return const Center(child: Text('Erro ao carregar o papel do usuário.'));
+            return const Center(
+                child: Text('Erro ao carregar o papel do usuário.'));
           }
         },
       ),
-      body: Stack(
-        children: [
-          Center(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
-              child: StreamBuilder<Map<String, int>>(
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              StreamBuilder<Map<String, int>>(
                 stream: _combinedMetricsStream(),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(child: CircularProgressIndicator());
                   } else if (snapshot.hasError) {
-                    return const Center(child: Text('Erro ao carregar métricas.'));
+                    return const Center(
+                        child: Text('Erro ao carregar métricas.'));
                   } else {
                     final data = snapshot.data!;
-                    return SingleChildScrollView(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          const Text(
-                            'Drop Lead Dashboard',
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
+                    monthlyDataMap[selectedMonth] = data;
+                    monthlyData = data;
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          'Drop Lead Dashboard',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Text(
+                              'Selecione o mês: ',
+                              style: TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.bold),
                             ),
-                          ),
-                          const SizedBox(height: 20),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Text(
-                                'Selecione o mês: ',
-                                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                              ),
-                              DropdownButton<String>(
-                                value: selectedMonth,
-                                items: months.map((month) {
-                                  return DropdownMenuItem<String>(
-                                    value: month,
-                                    child: Text(month),
-                                  );
-                                }).toList(),
-                                onChanged: (value) {
-                                  if (value != null) {
-                                    _onMonthSelected(value);
-                                  }
+                            DropdownButton<String>(
+                              value: selectedMonth,
+                              items: months.map((month) {
+                                return DropdownMenuItem<String>(
+                                  value: month,
+                                  child: Text(month),
+                                );
+                              }).toList(),
+                              onChanged: (value) {
+                                if (value != null) {
+                                  _onMonthSelected(value);
+                                }
+                              },
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 50),
+                        monthlyData.isNotEmpty
+                            ? MonthlyCarouselWidget(
+                                monthlyData: monthlyData,
+                                selectedMonth: selectedMonth,
+                                onPageChanged: (index) {
+                                  setState(() {
+                                    _currentIndex = index;
+                                  });
                                 },
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 30),
-                          monthlyData.isNotEmpty
-                              ? _buildMonthlyGrid(monthlyData)
-                              : const Center(child: CircularProgressIndicator()),
-                          const SizedBox(height: 40),
-                          _buildSellerCommissionsCard(),
-                          const SizedBox(height: 40),
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  children: [
-                                    const Text(
-                                      'Desempenho dos Vendedores',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                              )
+                            : const Center(child: CircularProgressIndicator()),
+                        const SizedBox(height: 40),
+                        _buildSellerCommissionsCard(),
+                        const SizedBox(height: 40),
+                        Wrap(
+                          spacing: 20.0,
+                          runSpacing: 20.0,
+                          alignment: WrapAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: MediaQuery.of(context).size.width > 600
+                                  ? 500
+                                  : double.infinity,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Text(
+                                    'Desempenho dos Vendedores',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
                                     ),
-                                    const SizedBox(height: 10),
-                                    FutureBuilder<Map<String, int>>(
-                                      future: _fetchSellerPerformance(),
-                                      builder: (context, snapshot) {
-                                        if (snapshot.connectionState == ConnectionState.waiting) {
-                                          return const CircularProgressIndicator();
-                                        } else if (snapshot.hasError) {
-                                          return const Text('Erro ao carregar desempenho.');
-                                        } else {
-                                          final sellerData = snapshot.data!;
-                                          return FutureBuilder<Map<String, String>>(
-                                            future: _fetchSellerNames(),
-                                            builder: (context, nameSnapshot) {
-                                              if (nameSnapshot.connectionState ==
-                                                  ConnectionState.waiting) {
-                                                return const CircularProgressIndicator();
-                                              } else if (nameSnapshot.hasError) {
-                                                return const Text('Erro ao carregar nomes.');
-                                              } else {
-                                                final sellerNames = nameSnapshot.data!;
-                                                return _buildPieChart(sellerData, sellerNames);
-                                              }
-                                            },
-                                          );
-                                        }
-                                      },
-                                    ),
-                                  ],
-                                ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  FutureBuilder<Map<String, int>>(
+                                    future: _fetchSellerPerformance(),
+                                    builder: (context, snapshot) {
+                                      if (snapshot.connectionState ==
+                                          ConnectionState.waiting) {
+                                        return const CircularProgressIndicator();
+                                      } else if (snapshot.hasError) {
+                                        return const Text(
+                                            'Erro ao carregar desempenho.');
+                                      } else {
+                                        final sellerData = snapshot.data!;
+                                        return FutureBuilder<
+                                            Map<String, String>>(
+                                          future: _fetchSellerNames(),
+                                          builder: (context, nameSnapshot) {
+                                            if (nameSnapshot.connectionState ==
+                                                ConnectionState.waiting) {
+                                              return const CircularProgressIndicator();
+                                            } else if (nameSnapshot.hasError) {
+                                              return const Text(
+                                                  'Erro ao carregar nomes.');
+                                            } else {
+                                              final sellerNames =
+                                                  nameSnapshot.data!;
+                                              return Container(
+                                                height: 300,
+                                                child: _buildPieChart(
+                                                    sellerData, sellerNames),
+                                              );
+                                            }
+                                          },
+                                        );
+                                      }
+                                    },
+                                  ),
+                                ],
                               ),
-                              const SizedBox(width: 30),
-                              Expanded(
-                                child: Column(
-                                  children: [
-                                    const Text(
-                                      'Crescimento vendas',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                            ),
+                            SizedBox(
+                              width: MediaQuery.of(context).size.width > 600
+                                  ? 500
+                                  : double.infinity,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  const Text(
+                                    'Crescimento vendas',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.bold,
                                     ),
-                                    const SizedBox(height: 10),
-                                    _buildSalesGrowthChart(),
-                                    const SizedBox(height: 25),
-                                  ],
-                                ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                  Container(
+                                    height: 300,
+                                    child: _buildSalesGrowthChart(),
+                                  ),
+                                  const SizedBox(height: 25),
+                                ],
                               ),
-                            ],
-                          ),
-                          Obx(() {
-                            if (clientsController.isLoading.value ||
-                                contractController.isLoading.value) {
-                              return const CircularProgressIndicator();
-                            } else {
-                              return Padding(
-                                padding: const EdgeInsets.all(25.0),
-                                child: ClientStatusOverviewWidget(
-                                  clientData: clientsController.clients
-                                      .map((client) => client.toJson())
-                                      .toList(),
-                                ),
-                              );
-                            }
-                          }),
-                        ],
-                      ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 40),
+                        Obx(() {
+                          if (clientsController.isLoading.value ||
+                              contractController.isLoading.value) {
+                            return const CircularProgressIndicator();
+                          } else {
+                            return Padding(
+                              padding: const EdgeInsets.all(25.0),
+                              child: ClientStatusOverviewWidget(
+                                clientData: clientsController.clients
+                                    .map((client) => client.toJson())
+                                    .toList(),
+                              ),
+                            );
+                          }
+                        }),
+                      ],
                     );
                   }
                 },
               ),
-            ),
+            ],
           ),
-          Positioned(
-            left: 16.0,
-            bottom: 16.0,
-            child: _buildPaymentReminderWidget(),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -623,8 +705,8 @@ class _HomePageState extends State<HomePage> {
                 // Atualiza cada cliente para que o lembrete não apareça mais
                 for (var payment in payments) {
                   await FirebaseFirestore.instance
-                      .collection('clients')
-                      .doc(payment['clientId'])
+                      .collection('contracts')
+                      .doc(payment['contractsId'])
                       .update({'reminderAcknowledged': true});
                 }
                 Navigator.of(context).pop();
@@ -677,23 +759,6 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
-
-  // Future<Map<String, double>> _fetchSellerContributions() async {
-  //   QuerySnapshot snapshot =
-  //       await FirebaseFirestore.instance.collection('contracts').get();
-  //
-  //   Map<String, double> sellerContributions = {};
-  //
-  //   for (var doc in snapshot.docs) {
-  //     String sellerId = doc['sellerId'];
-  //     double amount = doc['amount']?.toDouble() ?? 0.0;
-  //
-  //     sellerContributions[sellerId] =
-  //         (sellerContributions[sellerId] ?? 0) + amount;
-  //   }
-  //
-  //   return sellerContributions;
-  // }
 
   Future<Map<String, double>> _fetchCommissions() async {
     QuerySnapshot snapshot =
@@ -766,69 +831,6 @@ class _HomePageState extends State<HomePage> {
       rethrow; // Lança o erro novamente para ser tratado no FutureBuilder
     }
   }
-
-  // Widget _buildSellerPerformanceCard() {
-  //   return FutureBuilder<Map<String, double>>(
-  //     future: _fetchSellerContributions(),
-  //     builder: (context, snapshot) {
-  //       if (snapshot.connectionState == ConnectionState.waiting) {
-  //         return const CircularProgressIndicator();
-  //       } else if (snapshot.hasError) {
-  //         return const Text('Erro ao carregar contribuições.');
-  //       } else {
-  //         final contributions = snapshot.data!;
-  //         return FutureBuilder<Map<String, String>>(
-  //           future: _fetchSellerNames(),
-  //           builder: (context, nameSnapshot) {
-  //             if (nameSnapshot.connectionState == ConnectionState.waiting) {
-  //               return const CircularProgressIndicator();
-  //             } else if (nameSnapshot.hasError) {
-  //               return const Text('Erro ao carregar nomes.');
-  //             } else {
-  //               final sellerNames = nameSnapshot.data!;
-  //               final sortedContributions = contributions.entries.toList()
-  //                 ..sort((a, b) => b.value.compareTo(a.value));
-  //
-  //               return Card(
-  //                 elevation: 8.0,
-  //                 shape: RoundedRectangleBorder(
-  //                   borderRadius: BorderRadius.circular(12.0),
-  //                 ),
-  //                 child: Padding(
-  //                   padding: const EdgeInsets.all(16.0),
-  //                   child: Column(
-  //                     crossAxisAlignment: CrossAxisAlignment.start,
-  //                     children: [
-  //                       const Text(
-  //                         'Contribuição por Vendedor',
-  //                         style: TextStyle(
-  //                           fontSize: 18,
-  //                           fontWeight: FontWeight.bold,
-  //                         ),
-  //                       ),
-  //                       const SizedBox(height: 10),
-  //                       ...sortedContributions.map((entry) {
-  //                         String sellerName =
-  //                             sellerNames[entry.key] ?? 'Desconhecido';
-  //                         double contribution = entry.value;
-  //                         return ListTile(
-  //                           title: Text(sellerName),
-  //                           subtitle: Text(
-  //                             'Contribuição: R\$ ${contribution.toStringAsFixed(2)}',
-  //                           ),
-  //                         );
-  //                       }).toList(),
-  //                     ],
-  //                   ),
-  //                 ),
-  //               );
-  //             }
-  //           },
-  //         );
-  //       }
-  //     },
-  //   );
-  // }
 
   Widget _buildSellerCommissionsCard() {
     return FutureBuilder<Map<String, double>>(
@@ -996,84 +998,104 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // Função para gerar o nome abreviado da semana (Ex: "Sem 42")
-  String _getWeekLabel(int weekNumber) {
-    return 'Sem ${weekNumber.toString()}';
-  }
+  Widget _buildMonthlySalesLineChart(List<Map<String, dynamic>> salesData) {
+    if (salesData.isEmpty) {
+      return const Center(
+        child: Text('Nenhum dado disponível para exibir.'),
+      );
+    }
 
-  Widget _buildMetricCard({
-    required String month,
-    required String subtitle,
-    required int value,
-    required int comparisonValue,
-    required Color color,
-    required String route,
-  }) {
-    // Obtém o índice do mês atual
-    final currentMonthIndex = DateTime.now().month;
+    // Determinar os valores mínimo e máximo
+    double minY = salesData
+            .map((e) => e['amount'] as double)
+            .reduce((a, b) => a < b ? a : b) -
+        10;
+    double maxY = salesData
+            .map((e) => e['amount'] as double)
+            .reduce((a, b) => a > b ? a : b) +
+        10;
 
-    // Lista com os nomes dos meses
-    final months = [
-      'Janeiro',
-      'Fevereiro',
-      'Março',
-      'Abril',
-      'Maio',
-      'Junho',
-      'Julho',
-      'Agosto',
-      'Setembro',
-      'Outubro',
-      'Novembro',
-      'Dezembro',
-    ];
-
-    // Calcula o nome do mês anterior, ajustando para Dezembro se for Janeiro
-    final previousMonth = months[(currentMonthIndex - 2 + 12) % 12];
-
-    return GestureDetector(
-      onTap: () => Get.toNamed(route),
-      child: Card(
-        elevation: 5,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Text(
-                month,
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+    return SizedBox(
+      width: 400,
+      height: 300,
+      child: LineChart(
+        LineChartData(
+          lineBarsData: [
+            LineChartBarData(
+              spots: salesData.map((entry) {
+                int month = entry['month'] ?? 0;
+                double amount = entry['amount'] ?? 0.0;
+                return FlSpot(month.toDouble(), amount);
+              }).toList(),
+              isCurved: true,
+              barWidth: 3,
+              color: Colors.green,
+              dotData: FlDotData(show: true),
+              belowBarData: BarAreaData(show: false),
+            ),
+          ],
+          minY: minY,
+          // Valor mínimo para o eixo Y
+          maxY: maxY,
+          // Valor máximo para o eixo Y
+          titlesData: FlTitlesData(
+            leftTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 40,
+                interval: (maxY - minY) / 5, // Define intervalos regulares
+                getTitlesWidget: (value, meta) {
+                  return Text(
+                    'R\$${value.toInt()}',
+                    style: const TextStyle(fontSize: 12),
+                  );
+                },
               ),
-              const SizedBox(height: 8),
-              Text(
-                subtitle,
-                style: const TextStyle(fontSize: 16),
+            ),
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                getTitlesWidget: (value, meta) {
+                  List<String> months = [
+                    'Jan',
+                    'Fev',
+                    'Mar',
+                    'Abr',
+                    'Mai',
+                    'Jun',
+                    'Jul',
+                    'Ago',
+                    'Set',
+                    'Out',
+                    'Nov',
+                    'Dez'
+                  ];
+                  int monthIndex = value.toInt() - 1;
+                  if (monthIndex >= 0 && monthIndex < months.length) {
+                    return Text(months[monthIndex],
+                        style: const TextStyle(fontSize: 10));
+                  }
+                  return const SizedBox.shrink();
+                },
+                interval: 1,
               ),
-              const SizedBox(height: 8),
-              Text(
-                '$value',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '$comparisonValue em $previousMonth',
-                style: const TextStyle(fontSize: 14, color: Colors.grey),
-              ),
-            ],
+            ),
           ),
+          gridData: FlGridData(show: true),
+          borderData: FlBorderData(show: true),
         ),
       ),
     );
   }
 
+  // Função para gerar o nome abreviado da semana (Ex: "Sem 42")
+  String _getWeekLabel(int weekNumber) {
+    return 'Sem ${weekNumber.toString()}';
+  }
+
   Widget _buildSalesGrowthChart() {
     return FutureBuilder<List<Map<String, dynamic>>>(
-      future: _fetchWeeklySalesData(),
+      future: _fetchMonthlySalesData(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const CircularProgressIndicator();
@@ -1083,7 +1105,7 @@ class _HomePageState extends State<HomePage> {
           return const Text('Nenhum dado disponível.');
         } else {
           final weeklySalesData = snapshot.data!;
-          return _buildLineChart(weeklySalesData);
+          return _buildMonthlySalesLineChart(snapshot.data!);
         }
       },
     );

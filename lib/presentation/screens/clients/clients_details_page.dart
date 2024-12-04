@@ -1,16 +1,48 @@
 import 'package:flutter/material.dart';
 import 'package:comissao_flutter_web/data/models/clients_model.dart';
+import 'package:get/get.dart';
+import '../clients/controllers/clients_controller.dart';
 
-class ClientDetailsPage extends StatelessWidget {
-  final ClientModel client;
+class ClientDetailsPage extends StatefulWidget {
+  final ClientModel? client; // Tornando o parâmetro opcional para tratar nulos.
 
-  const ClientDetailsPage({Key? key, required this.client}) : super(key: key);
+  const ClientDetailsPage({Key? key, this.client}) : super(key: key);
+
+  @override
+  _ClientDetailsPageState createState() => _ClientDetailsPageState();
+}
+
+class _ClientDetailsPageState extends State<ClientDetailsPage> {
+  final ClientsController _clientsController = Get.put(ClientsController());
+  late String currentStatus;
+
+  @override
+  void initState() {
+    super.initState();
+    // Define o status atual ou "Desconhecido" se o cliente for nulo.
+    currentStatus = widget.client?.status ?? 'Desconhecido';
+  }
 
   @override
   Widget build(BuildContext context) {
+    // Verifica se o cliente é nulo e exibe uma mensagem apropriada.
+    if (widget.client == null) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Detalhes do Cliente'),
+        ),
+        body: const Center(
+          child: Text(
+            'Erro: Cliente não fornecido.',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('${client.nome}'),
+        title: Text('${widget.client!.nome}'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -24,7 +56,16 @@ class ClientDetailsPage extends StatelessWidget {
               ),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
-                child: _buildScrollableTable(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: _buildScrollableTable(),
+                    ),
+                    const SizedBox(height: 16),
+                    _buildStatusDropdown(),
+                  ],
+                ),
               ),
             ),
           ),
@@ -50,31 +91,25 @@ class ClientDetailsPage extends StatelessWidget {
   }
 
   List<TableRow> _buildTableRows() {
+    // Garantindo que os valores sejam tratados corretamente mesmo que sejam nulos.
     return [
-      _buildTableRow('Nome', client.nome),
-      _buildTableRow('CNPJ', client.cpfcnpj ?? 'Não disponível'),
-      _buildTableRow('Inscrição Estadual', client.inscricaoEstadual ?? 'Não disponível'),
-      _buildTableRow('Email', client.email ?? 'Não disponível'),
-      _buildTableRow('Telefone', client.telefone ?? 'Não disponível'),
-      _buildTableRow('Rua', client.rua ?? 'Não disponível'),
-      _buildTableRow('Número', client.numero?.toString() ?? 'Não disponível'),
-      _buildTableRow('Complemento', client.complemento ?? 'Não disponível'),
-      _buildTableRow('Bairro', client.bairro ?? 'Não disponível'),
-      _buildTableRow('Cidade', client.cidade ?? 'Não disponível'),
-      _buildTableRow('Estado', client.estado ?? 'Não disponível'),
-      _buildTableRow('CEP', client.cep ?? 'Não disponível'),
-      _buildTableRow('País', client.pais ?? 'Não disponível'),
-      _buildTableRow('Código do Produto', client.codigoProduto?.toString() ?? 'Não disponível'),
-      _buildTableRow('Nome do Produto', client.nomeProduto ?? 'Não disponível'),
-      _buildTableRow('Valor Unitário', client.valorUnitario ?? 'Não disponível'),
-      _buildTableRow('Quantidade', client.quantidade?.toString() ?? 'Não disponível'),
-      _buildTableRow('NCM', client.ncm?.toString() ?? 'Não disponível'),
-      _buildTableRow('Natureza', client.natureza?.toString() ?? 'Não disponível'),
-      _buildTableRow('Código de Venda', client.codigoVenda?.toString() ?? 'Não disponível'),
-      _buildTableRow('Data da Venda', client.dataVenda?.toString() ?? 'Não disponível'),
-      _buildTableRow('Data Retroativa', client.dataRetroativa?.toString() ?? 'Não disponível'),
-      _buildTableRow('status', client.status),
-      _buildTableRow('Registrado em', _formatDate(client.registeredAt)),
+      _buildTableRow('Nome', widget.client!.nome),
+      _buildTableRow('CNPJ', widget.client!.cpfcnpj ?? 'Não disponível'),
+      _buildTableRow('Inscrição Estadual', widget.client!.inscricaoEstadual ?? 'Não disponível'),
+      _buildTableRow('Email', widget.client!.email ?? 'Não disponível'),
+      _buildTableRow('Telefone', widget.client!.telefone ?? 'Não disponível'),
+      _buildTableRow('Rua', widget.client!.rua ?? 'Não disponível'),
+      _buildTableRow('Número', widget.client!.numero?.toString() ?? 'Não disponível'),
+      _buildTableRow('Complemento', widget.client!.complemento ?? 'Não disponível'),
+      _buildTableRow('Bairro', widget.client!.bairro ?? 'Não disponível'),
+      _buildTableRow('Cidade', widget.client!.cidade ?? 'Não disponível'),
+      _buildTableRow('Estado', widget.client!.estado ?? 'Não disponível'),
+      _buildTableRow('CEP', widget.client!.cep ?? 'Não disponível'),
+      _buildTableRow('País', widget.client!.pais ?? 'Não disponível'),
+      _buildTableRow('Data da Venda', widget.client!.dataVenda?.toString() ?? 'Não disponível'),
+      _buildTableRow('Data Retroativa', widget.client!.dataRetroativa?.toString() ?? 'Não disponível'),
+      _buildTableRow('Status', currentStatus),
+      _buildTableRow('Registrado em', _formatDate(widget.client!.registeredAt)),
     ];
   }
 
@@ -107,7 +142,97 @@ class ClientDetailsPage extends StatelessWidget {
     );
   }
 
-  String _formatDate(DateTime date) {
+  String _formatDate(DateTime? date) {
+    if (date == null) return 'Não disponível';
     return '${date.day}/${date.month}/${date.year}';
+  }
+
+  Widget _buildStatusDropdown() {
+    final List<String> statuses = [
+      'Ativo',
+      'Cancelado',
+      'Downsell',
+      'Encerramento',
+      'Inativo',
+      'Renovado',
+      'Renovação Automática',
+      'Upsell',
+    ];
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const Text(
+            'Alterar Status do Cliente:',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          const SizedBox(height: 8),
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              color: getStatusColor(currentStatus).withOpacity(0.2),
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: DropdownButton<String>(
+              value: currentStatus,
+              icon: const Icon(Icons.arrow_downward),
+              iconSize: 24,
+              elevation: 16,
+              style: TextStyle(color: getStatusColor(currentStatus), fontSize: 16),
+              underline: Container(
+                height: 2,
+                color: getStatusColor(currentStatus),
+              ),
+              onChanged: (String? newValue) {
+                if (newValue != null) {
+                  setState(() {
+                    currentStatus = newValue;
+                  });
+                  _clientsController.updateClientStatus(widget.client!, newValue);
+                  Get.snackbar(
+                    'Status Atualizado',
+                    'Cliente definido como $newValue.',
+                    snackPosition: SnackPosition.BOTTOM,
+                    backgroundColor: getStatusColor(newValue).withOpacity(0.8),
+                    colorText: Colors.white,
+                  );
+                }
+              },
+              items: statuses.map<DropdownMenuItem<String>>((String value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
+      );
+    }
+
+  // Método para obter a cor do status
+  Color getStatusColor(String status) {
+    switch (status.toUpperCase()) {
+      case 'ATIVO':
+        return Colors.green;
+      case 'CANCELADO':
+        return Colors.red;
+      case 'DOWNSSELL':
+        return Colors.orange;
+      case 'ENCERRAMENTO':
+        return Colors.yellow[700]!;
+      case 'INATIVO':
+        return Colors.grey;
+      case 'RENOVADO':
+        return Colors.purple;
+      case 'RENOVAÇÃO AUTOMÁTICA':
+        return Colors.purple[200]!;
+      case 'UPSELL':
+        return Colors.green;
+      case 'PAUSADO':
+        return Colors.blue;
+      default:
+        return Colors.grey.shade300;
+    }
   }
 }
