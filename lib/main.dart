@@ -51,7 +51,7 @@ class MyApp extends StatelessWidget {
         GetPage(name: '/lead_form', page: () => const LeadFormPage()),
         GetPage(name: '/leads_page', page: () => const LeadsPage()),
         GetPage(name: '/contracts_page', page: () => ContractsPage()),
-        GetPage(name: '/clients_page', page: () => const ClientsPage()),
+        GetPage(name: '/clients_page', page: () => ClientsPage()),
         GetPage(name: '/meet_page', page: () => const MeetPage()),
         GetPage(name: '/operator_form', page: () => OperatorFormPage()),
         GetPage(

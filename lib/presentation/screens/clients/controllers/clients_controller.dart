@@ -26,6 +26,41 @@ class ClientsController extends GetxController {
     }
   }
 
+  // Método para alterar o status de um cliente
+  Future<void> updateClientStatus(ClientModel client, String newStatus) async {
+    try {
+      isLoading.value = true;
+      client.status = newStatus; // Atualiza localmente
+      await _clientRepository.updateClient(client); // Atualiza no banco
+      clients.refresh(); // Atualiza a lista observada
+      Get.snackbar('Sucesso', 'Status do cliente atualizado para $newStatus');
+    } catch (e) {
+      Get.snackbar('Erro', 'Erro ao atualizar status: $e');
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // Método para buscar clientes com base em uma query
+  void searchClients(String query) {
+    final lowerQuery = query.toLowerCase();
+    final filtered = clients.where((client) {
+      return client.nome.toLowerCase().contains(lowerQuery) ||
+          (client.cpfcnpj?.toLowerCase() ?? '').contains(lowerQuery) ||
+          (client.telefone?.toLowerCase() ?? '').contains(lowerQuery) ||
+          client.status.toLowerCase().contains(lowerQuery);
+    }).toList();
+
+    clients.value = filtered; // Atualiza a lista visível
+  }
+
+  // Método para ordenar a lista de clientes
+  void sortClients(bool isAscending) {
+    final sorted = clients.toList();
+    sorted.sort((a, b) => isAscending ? a.nome.compareTo(b.nome) : b.nome.compareTo(a.nome));
+    clients.value = sorted; // Atualiza a lista ordenada
+  }
+
   // Método para adicionar cliente ao banco
   Future<void> addClient(ClientModel client) async {
     isLoading.value = true;
