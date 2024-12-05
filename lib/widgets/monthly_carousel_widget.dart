@@ -1,6 +1,6 @@
-import 'package:carousel_slider/carousel_slider.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:carousel_slider/carousel_slider.dart';
 
 class MonthlyCarouselWidget extends StatefulWidget {
   final Map<String, int> monthlyData;
@@ -18,13 +18,12 @@ class MonthlyCarouselWidget extends StatefulWidget {
 }
 
 class _MonthlyCarouselWidgetState extends State<MonthlyCarouselWidget> {
-  final CarouselSliderController _carouselController = CarouselSliderController();
-
   int _currentIndex = 0;
 
   @override
   Widget build(BuildContext context) {
-    final List<Widget> cardList = [
+    Size size = MediaQuery.of(context).size;
+    List<Widget> cardList = [
       _buildMetricCard(
         month: widget.selectedMonth,
         subtitle: 'Contratos Ativos',
@@ -76,64 +75,47 @@ class _MonthlyCarouselWidgetState extends State<MonthlyCarouselWidget> {
     ];
 
     return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        CarouselSlider.builder(
-          itemCount: cardList.length,
-          itemBuilder: (context, index, realIdx) {
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: cardList[index],
-            );
-          },
+      mainAxisAlignment: MainAxisAlignment.start,
+      children: <Widget>[
+        CarouselSlider(
+          items: cardList,
           options: CarouselOptions(
-            height: 240.0,
-            autoPlay: true,
-            enlargeCenterPage: true,
-            autoPlayInterval: const Duration(seconds: 5),
-            autoPlayAnimationDuration: const Duration(milliseconds: 1500),
-            autoPlayCurve: Curves.easeInOut,
-            pauseAutoPlayOnTouch: true,
+            height: size.height * 0.35,       // Ajusta o tamanho conforme necessário
+            autoPlay: true,                   // Habilita a reprodução automática
+            autoPlayInterval: const Duration(seconds: 6),
+            enlargeCenterPage: true,          // Faz com que o card central fique maior
+            viewportFraction: 0.33,           // Mostrar 3 cartões por vez (1/3 do viewport)
             enableInfiniteScroll: true,
-            viewportFraction: 0.3,
             onPageChanged: (index, reason) {
-              widget.onPageChanged(index);
               setState(() {
                 _currentIndex = index;
               });
             },
+            enlargeStrategy: CenterPageEnlargeStrategy.scale, // Estratégia de ampliação do centro (usando escala)
+            scrollPhysics: const BouncingScrollPhysics(),           // Efeito "bounce" no scroll
           ),
-          carouselController: _carouselController, // Certifique-se de que o controlador está vindo do carousel_slider.
         ),
         const SizedBox(height: 16),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: cardList.asMap().entries.map((entry) {
-              return GestureDetector(
-                onTap: () {
-                  _carouselController.animateToPage(
-                    entry.key,
-                    duration: const Duration(milliseconds: 500),
-                    curve: Curves.easeInOut,
-                  );
-                  setState(() {
-                    _currentIndex = entry.key;
-                  });
-                },
-                child: Container(
-                  width: 10.0,
-                  height: 10.0,
-                  margin: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 4.0),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: _currentIndex == entry.key ? Colors.blueAccent : Colors.grey,
-                  ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: cardList.asMap().entries.map((entry) {
+            return GestureDetector(
+              onTap: () {
+                setState(() {
+                  _currentIndex = entry.key;
+                });
+              },
+              child: Container(
+                width: 10.0,
+                height: 10.0,
+                margin: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 4.0),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: _currentIndex == entry.key ? Colors.blueAccent : Colors.grey,
                 ),
-              );
-            }).toList(),
-          ),
+              ),
+            );
+          }).toList(),
         ),
       ],
     );
@@ -149,46 +131,49 @@ class _MonthlyCarouselWidgetState extends State<MonthlyCarouselWidget> {
   }) {
     return GestureDetector(
       onTap: () => Get.toNamed(route),
-      child: Card(
-        elevation: 5,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                month,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+      child: SizedBox(
+        width: 350,
+        child: Card(
+          elevation: 5,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const SizedBox(height: 8),
+                Text(
+                  month,
+                  style: const TextStyle(
+                    fontSize: 14,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                subtitle,
-                style: const TextStyle(fontSize: 14),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '$value',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: color,
+                const SizedBox(height: 8),
+                Text(
+                  subtitle,
+                  style: const TextStyle(fontSize: 14),
                 ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '$comparisonValue em $month',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey,
+                const SizedBox(height: 8),
+                Text(
+                  '$value',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 8),
+                Text(
+                  '$comparisonValue em $month',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

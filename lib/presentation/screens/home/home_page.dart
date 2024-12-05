@@ -12,9 +12,10 @@ import '../clients/controllers/clients_controller.dart';
 import '../contract/controllers/contracts_controller.dart';
 import 'package:rxdart/rxdart.dart' as rxd;
 import 'package:carousel_slider/carousel_slider.dart';
-import 'package:carousel_slider/carousel_controller.dart';
 
 class HomePage extends StatefulWidget {
+  const HomePage({super.key});
+
   @override
   _HomePageState createState() => _HomePageState();
 }
@@ -24,7 +25,7 @@ class _HomePageState extends State<HomePage> {
   late Future<Map<String, int>> metricsFuture;
   final ClientsController clientsController = Get.put(ClientsController());
   final ContractController contractController = Get.put(ContractController());
-  final CarouselController _carouselController = CarouselController();
+
   final List<String> months = [
     'Janeiro',
     'Fevereiro',
@@ -39,16 +40,13 @@ class _HomePageState extends State<HomePage> {
     'Novembro',
     'Dezembro',
   ];
-
   String selectedMonth = DateTime.now().month.toString(); // Mês atual
   late int selectedMonthIndex;
-  Map<String, Map<String, int>> monthlyDataMap =
-      {}; // Armazena os dados para cada mês
+  Map<String, Map<String, int>> monthlyDataMap = {};
   Map<String, int> monthlyData = {};
+  int _currentIndex = 0;
 
-  int _currentIndex = 0; // Índice da página atual do carrossel
-  final PageController _pageController =
-      PageController(); // Controlador de página para o carrossel
+
 
 // Stream que combina os dados de contracts e clients em tempo real
   Stream<Map<String, int>> _combinedMetricsStream() {
@@ -194,13 +192,10 @@ class _HomePageState extends State<HomePage> {
     try {
       QuerySnapshot snapshot =
           await FirebaseFirestore.instance.collection('contracts').get();
-
       // Mapeia os meses e soma as vendas para cada mês
       Map<int, double> monthlySales = {};
-
       for (var doc in snapshot.docs) {
         final data = doc.data() as Map<String, dynamic>?;
-
         if (data != null) {
           // Validação de `startDate`
           DateTime? startDate;
@@ -209,10 +204,8 @@ class _HomePageState extends State<HomePage> {
           } else {
             continue; // Ignora documentos inválidos
           }
-
           // Validação de `feeMensal`
           double feeMensal = data['feeMensal']?.toDouble() ?? 0.0;
-
           // Garantir que a data de início seja válida
           if (startDate != null) {
             int month = startDate.month;
@@ -220,7 +213,6 @@ class _HomePageState extends State<HomePage> {
           }
         }
       }
-
       // Converte o Map em uma lista para o gráfico
       return monthlySales.entries
           .map((entry) => {'month': entry.key, 'amount': entry.value})
@@ -371,7 +363,6 @@ class _HomePageState extends State<HomePage> {
     }
 
     // Log de depuração
-    print("Total de lembretes encontrados: ${upcomingPayments.length}");
     for (var payment in upcomingPayments) {
       print(
           "Lembrete para ${payment['nome']} com vencimento em ${payment['dataVencimentoPagamento']}");
@@ -401,15 +392,23 @@ class _HomePageState extends State<HomePage> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Recarrega as métricas sempre que a página recebe o foco novamente
     selectedMonthIndex = DateTime.now().month - 1; // Mês atual como índice
     selectedMonth = months[selectedMonthIndex]; // Nome do mês atual
     refreshMetrics();
   }
 
   @override
+  void dispose() {
+    //_pageController.dispose();
+    Get.delete<ClientsController>();
+    Get.delete<ContractController>();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     User? user = FirebaseAuth.instance.currentUser;
+    Size size = MediaQuery.of(context).size;
 
     return Scaffold(
       appBar: AppBar(
@@ -502,17 +501,37 @@ class _HomePageState extends State<HomePage> {
                           ],
                         ),
                         const SizedBox(height: 50),
-                        monthlyData.isNotEmpty
-                            ? MonthlyCarouselWidget(
-                                monthlyData: monthlyData,
-                                selectedMonth: selectedMonth,
-                                onPageChanged: (index) {
-                                  setState(() {
-                                    _currentIndex = index;
-                                  });
-                                },
-                              )
-                            : const Center(child: CircularProgressIndicator()),
+                        SizedBox(
+                          child: monthlyData.isNotEmpty
+                              ? MonthlyCarouselWidget(
+                            monthlyData: monthlyData,
+                            selectedMonth: selectedMonth,
+                            onPageChanged: (index) {
+
+                                _currentIndex = index;
+
+                            },
+                          )
+                              : const Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        Obx(() {
+                          if (clientsController.isLoading.value ||
+                              contractController.isLoading.value) {
+                            return const CircularProgressIndicator();
+                          } else {
+                            return Padding(
+                              padding: const EdgeInsets.all(25.0),
+                              child: ClientStatusOverviewWidget(
+                                clientData: clientsController.clients
+                                    .map((client) => client.toJson())
+                                    .toList(),
+                              ),
+                            );
+                          }
+                        }),
                         const SizedBox(height: 40),
                         _buildSellerCommissionsCard(),
                         const SizedBox(height: 40),
@@ -599,22 +618,7 @@ class _HomePageState extends State<HomePage> {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 40),
-                        Obx(() {
-                          if (clientsController.isLoading.value ||
-                              contractController.isLoading.value) {
-                            return const CircularProgressIndicator();
-                          } else {
-                            return Padding(
-                              padding: const EdgeInsets.all(25.0),
-                              child: ClientStatusOverviewWidget(
-                                clientData: clientsController.clients
-                                    .map((client) => client.toJson())
-                                    .toList(),
-                              ),
-                            );
-                          }
-                        }),
+
                       ],
                     );
                   }
