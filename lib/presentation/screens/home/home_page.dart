@@ -579,7 +579,7 @@ class _HomePageState extends State<HomePage> {
                                             } else {
                                               final sellerNames =
                                                   nameSnapshot.data!;
-                                              return Container(
+                                              return SizedBox(
                                                 height: 300,
                                                 child: _buildPieChart(
                                                     sellerData, sellerNames),

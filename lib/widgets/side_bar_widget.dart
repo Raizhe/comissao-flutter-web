@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-// Definindo a cor secundária como constante baseada na cor do print.
-const Color secondaryColor = Color(0xFF090742); // Ajuste com o valor exato se necessário.
+const Color secondaryColor = Color(0xFF090742);
 
 class SidebarWidget extends StatelessWidget {
   final String role;
@@ -17,7 +16,7 @@ class SidebarWidget extends StatelessWidget {
         children: <Widget>[
           const DrawerHeader(
             decoration: BoxDecoration(
-              color: secondaryColor, // Aplicando a cor secundária
+              color: secondaryColor,
             ),
             child: Text(
               'Drop Lead',
@@ -27,7 +26,6 @@ class SidebarWidget extends StatelessWidget {
               ),
             ),
           ),
-
           // Menu "Cadastrar" com opções expandidas
           ExpansionTile(
             leading: const Icon(Icons.add),
@@ -69,7 +67,13 @@ class SidebarWidget extends StatelessWidget {
                   text: 'CS',
                   route: '/customer_success_form',
                 ),
-
+                // Adicionando opção de cadastrar metas para o admin
+                if (role == 'admin')
+                  _buildDrawerItem(
+                    icon: Icons.flag,
+                    text: 'Cadastrar Metas',
+                    route: '/goal_form',
+                  ),
               ],
               if (role == 'seller' || role == 'pre_seller') ...[
                 _buildDrawerItem(
@@ -121,7 +125,7 @@ class SidebarWidget extends StatelessWidget {
     required String route,
   }) {
     return ListTile(
-      leading: Icon(icon, color: secondaryColor), // Ícones na cor secundária
+      leading: Icon(icon, color: secondaryColor),
       title: Text(text),
       onTap: () {
         Get.toNamed(route);

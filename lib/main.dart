@@ -10,6 +10,7 @@ import 'package:comissao_flutter_web/presentation/screens/leads/leads_page.dart'
 import 'package:comissao_flutter_web/presentation/screens/meet/meet_page.dart';
 import 'package:comissao_flutter_web/presentation/screens/pre_seller/pre_seller_form_page.dart';
 import 'package:comissao_flutter_web/presentation/screens/seller/seller_form_page.dart';
+import 'package:comissao_flutter_web/presentation/screens/seller_goal/goal_form_page.dart';
 import 'package:comissao_flutter_web/presentation/screens/user/user_form_page.dart';
 import 'package:comissao_flutter_web/presentation/screens/operator/operator_form_page.dart';
 import 'package:flutter/material.dart';
@@ -70,6 +71,7 @@ class MyApp extends StatelessWidget {
             sellerName: '',
           ),
         ),
+        GetPage(name: '/goal_form', page: () => GoalFormPage()),
       ],
     );
   }
